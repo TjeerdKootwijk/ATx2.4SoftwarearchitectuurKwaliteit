@@ -1,0 +1,27 @@
+*.md
+.git
+.gitignore
+.gradle
+.idea
+*.iml
+*.iws
+*.ipr
+build/
+out/
+target/
+dist/
+!gradle/wrapper/
+
+# Local env files
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode
+.DS_Store
+
+# OS files
+Thumbs.db
+node_modules
+
