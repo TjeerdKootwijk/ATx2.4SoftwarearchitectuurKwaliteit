@@ -65,6 +65,16 @@ services:
       start_period: 40s
       retries: 3
 
+  webhook-tester:
+    image: mcr.microsoft.com/powershell
+    depends_on:
+      app:
+        condition: service_healthy
+    volumes:
+      - ./scripts:/scripts
+    command: >
+      pwsh /scripts/test-webhook.ps1
+
 volumes:
   postgres-data:
   rabbitmq-data:
