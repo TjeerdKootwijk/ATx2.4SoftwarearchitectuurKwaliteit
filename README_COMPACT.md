@@ -12,16 +12,15 @@ Event-driven external communication module for OpenMRS appointment notifications
 ```bash
 cd ATx2.4SoftwarearchitectuurKwaliteit
 docker-compose up --build
+docker-compose up
 ```
 
-### Step 2: Test Webhook (Windows)
-```bash
-test-webhook.bat
-```
 
-### Step 3: Monitor
+
+### Step 2: Monitor
+- **Application:** http://localhost:8080 (logs: `docker-compose logs -f app`)
+- **MessageProviders:** http://localhost:1337
 - **RabbitMQ:** http://localhost:15672 (guest/guest)
-- **Logs:** `docker-compose logs -f app`
 - **Webhook Health:** `curl http://localhost:8080/api/events/health`
 
 ---

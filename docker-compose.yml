@@ -1,5 +1,10 @@
 
 services:
+  #fake message providers
+  fakeMessageProvider:
+    image: ghcr.io/avansict/in2.4-fakecomworld:main
+    ports:
+      - "1337:8080"
   # PostgreSQL Database
   postgres:
     image: postgres:17-alpine

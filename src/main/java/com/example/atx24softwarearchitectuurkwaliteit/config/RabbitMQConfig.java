@@ -1,14 +1,12 @@
 package com.example.atx24softwarearchitectuurkwaliteit.config;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
-import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
 import org.springframework.amqp.core.Binding;
 import org.springframework.amqp.core.BindingBuilder;
 import org.springframework.amqp.core.DirectExchange;
 import org.springframework.amqp.core.Queue;
+import org.springframework.amqp.support.converter.JacksonJsonMessageConverter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -61,16 +59,10 @@ public class RabbitMQConfig {
                 .with(NOTIFICATION_ROUTING_KEY);
     }
 
-    @Bean
-    public ObjectMapper objectMapper() {
-           ObjectMapper mapper = new ObjectMapper();
-           mapper.registerModule(new JavaTimeModule());
-           return mapper;
-    }
 
     @Bean
-    public Jackson2JsonMessageConverter jacksonMessageConverter(ObjectMapper mapper) {
-        return new Jackson2JsonMessageConverter(mapper);
+    public JacksonJsonMessageConverter jacksonMessageConverter() {
+        return new JacksonJsonMessageConverter();
     }
 
     @Bean
