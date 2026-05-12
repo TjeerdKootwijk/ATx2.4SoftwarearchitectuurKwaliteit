@@ -22,7 +22,7 @@ public class Application {
     private static void initializeSampleTenants(TenantService tenantService) {
         // Sample tenant 1: Local OpenMRS
         TenantConfiguration tenant1 = new TenantConfiguration("tenant-001", "Local OpenMRS Instance");
-        tenant1.setOpenMrsBaseUrl("http://openmrs:8080/openmrs");
+        tenant1.setOpenMrsBaseUrl("http://host.docker.internal/openmrs");  // ← aangepast
         tenant1.setOpenMrsUsername("admin");
         tenant1.setOpenMrsPassword("Admin123");
         tenant1.setWebhookSecret("webhook-secret-001-for-hmac");
@@ -31,7 +31,7 @@ public class Application {
 
         // Sample tenant 2: Demo Organization
         TenantConfiguration tenant2 = new TenantConfiguration("tenant-002", "Demo Healthcare Organization");
-        tenant2.setOpenMrsBaseUrl("http://localhost:8080/openmrs");
+        tenant2.setOpenMrsBaseUrl("http://host.docker.internal/openmrs");  // ← aangepast
         tenant2.setOpenMrsUsername("admin");
         tenant2.setOpenMrsPassword("Admin123");
         tenant2.setWebhookSecret("webhook-secret-002-for-hmac");

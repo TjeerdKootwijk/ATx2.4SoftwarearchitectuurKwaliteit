@@ -42,6 +42,8 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: atx24-app
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       postgres:
         condition: service_healthy

@@ -11,6 +11,7 @@ import org.springframework.amqp.core.DirectExchange;
 import org.springframework.amqp.core.Queue;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.web.client.RestTemplate;
 
 @Configuration
 public class RabbitMQConfig {
@@ -71,6 +72,11 @@ public class RabbitMQConfig {
     @Bean
     public Jackson2JsonMessageConverter jacksonMessageConverter(ObjectMapper mapper) {
         return new Jackson2JsonMessageConverter(mapper);
+    }
+
+    @Bean
+    public RestTemplate restTemplate() {
+        return new RestTemplate();
     }
 
     @Bean
