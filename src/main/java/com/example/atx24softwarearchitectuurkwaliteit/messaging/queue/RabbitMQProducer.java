@@ -3,7 +3,9 @@ package com.example.atx24softwarearchitectuurkwaliteit.messaging.queue;
 import com.example.atx24softwarearchitectuurkwaliteit.config.RabbitMQConfig;
 import com.example.atx24softwarearchitectuurkwaliteit.messaging.queue.dto.NotificationQueueMessage;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.stereotype.Component;
 
+@Component
 public class RabbitMQProducer {
 
     private final RabbitTemplate rabbitTemplate;

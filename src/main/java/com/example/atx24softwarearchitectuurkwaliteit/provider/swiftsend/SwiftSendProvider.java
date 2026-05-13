@@ -8,6 +8,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 @Service
 public class SwiftSendProvider implements MessagingProvider {
 
@@ -29,9 +31,13 @@ public class SwiftSendProvider implements MessagingProvider {
             log.info("Sending SwiftSend message via SwiftSend provider to recipient: {}", message.getRecipient());
 
             SwiftSendRequest request = new SwiftSendRequest();
+            request.setType("SMS");
+            request.setRecipients(List.of(message.getRecipient()));
+            request.setContent(message.getBody());
+
             SwiftSendResponse response = swiftSendClient.send(request);
 
-            if (response != null) {
+            if (response != null && response.isSuccess()) {
                 log.info("SwiftSend message sent successfully");
                 return ProviderSendResult.send(message.getNotificationId().toString());
             } else {

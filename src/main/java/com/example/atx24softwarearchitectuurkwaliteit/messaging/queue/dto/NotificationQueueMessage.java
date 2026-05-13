@@ -19,7 +19,8 @@ public class NotificationQueueMessage {
     public NotificationQueueMessage() {
     }
 
-    public NotificationQueueMessage(UUID notificationId,
+    public NotificationQueueMessage(
+            UUID notificationId,
                                     String recipient,
                                     String subject,
                                     String body,

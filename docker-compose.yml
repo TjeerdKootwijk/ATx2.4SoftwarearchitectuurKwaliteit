@@ -52,6 +52,8 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
+      fakeMessageProvider:
+        condition: service_started
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/atx24db
       SPRING_DATASOURCE_USERNAME: postgres
@@ -60,6 +62,9 @@ services:
       SPRING_RABBITMQ_PORT: 5672
       SPRING_RABBITMQ_USERNAME: guest
       SPRING_RABBITMQ_PASSWORD: guest
+      PROVIDERS_BASE_URL: http://fakeMessageProvider:8080
+      PROVIDERS_STUDENT_GROUP: c1
+      PROVIDERS_SWIFTSEND_API_KEY: your-api-key-here
     ports:
       - "8080:8080"
       - "9090:9090"     # Prometheus metrics (if configured)

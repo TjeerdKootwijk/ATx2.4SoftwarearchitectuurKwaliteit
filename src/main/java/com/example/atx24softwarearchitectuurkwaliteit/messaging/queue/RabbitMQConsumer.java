@@ -6,7 +6,9 @@ import com.example.atx24softwarearchitectuurkwaliteit.provider.MessagingProvider
 import com.example.atx24softwarearchitectuurkwaliteit.provider.MessagingProviderFactory;
 import com.example.atx24softwarearchitectuurkwaliteit.provider.ProviderSendResult;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
+import org.springframework.stereotype.Component;
 
+@Component
 public class RabbitMQConsumer {
     private final MessagingProviderFactory providerFactory;
 
