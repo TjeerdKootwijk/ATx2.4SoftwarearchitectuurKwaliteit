@@ -1,6 +1,6 @@
 plugins {
 	id 'java'
-	id 'org.springframework.boot' version '4.1.0-SNAPSHOT'
+	id 'org.springframework.boot' version '3.5.0'
 	id 'io.spring.dependency-management' version '1.1.7'
 }
 
@@ -16,18 +16,36 @@ java {
 
 repositories {
 	mavenCentral()
-	maven { url = 'https://repo.spring.io/snapshot' }
 }
 
 dependencies {
-	implementation 'org.springframework.boot:spring-boot-starter-actuator'
+
+	// Web (Spring MVC)
 	implementation 'org.springframework.boot:spring-boot-starter-web'
+
+	// WebClient (for FakeComWorld APIs)
+	implementation 'org.springframework.boot:spring-boot-starter-webflux'
+
+	// RabbitMQ
 	implementation 'org.springframework.boot:spring-boot-starter-amqp'
+
+	// Actuator (health, metrics)
+	implementation 'org.springframework.boot:spring-boot-starter-actuator'
+
+	// JSON handling (optional but fine)
 	implementation 'com.fasterxml.jackson.core:jackson-databind'
 	implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310'
-	runtimeOnly 'io.micrometer:micrometer-registry-prometheus'
+
+	// Database
 	runtimeOnly 'org.postgresql:postgresql'
-	testImplementation 'org.springframework.boot:spring-boot-starter-amqp-test'
+
+	// Metrics (Prometheus)
+	runtimeOnly 'io.micrometer:micrometer-registry-prometheus'
+
+	// Tests
+	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+	testImplementation 'org.springframework.amqp:spring-rabbit-test'
+
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 

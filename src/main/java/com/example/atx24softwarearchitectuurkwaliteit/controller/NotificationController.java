@@ -1,7 +1,10 @@
 package com.example.atx24softwarearchitectuurkwaliteit.controller;
 
 import com.example.atx24softwarearchitectuurkwaliteit.dto.NotificationRequest;
+import com.example.atx24softwarearchitectuurkwaliteit.messaging.queue.RabbitMQProducer;
+import com.example.atx24softwarearchitectuurkwaliteit.messaging.queue.dto.NotificationQueueMessage;
 import com.example.atx24softwarearchitectuurkwaliteit.model.Notification;
+import com.example.atx24softwarearchitectuurkwaliteit.provider.ProviderType;
 import com.example.atx24softwarearchitectuurkwaliteit.service.NotificationService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -10,9 +13,18 @@ import org.springframework.web.bind.annotation.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Instant;
+import java.util.UUID;
+
 @RestController
 @RequestMapping("/api/notifications")
 public class NotificationController {
+
+    private final RabbitMQProducer rabbitMQProducer;
+
+    public NotificationController(RabbitMQProducer rabbitMQProducer) {
+        this.rabbitMQProducer = rabbitMQProducer;
+    }
 
     private static final Logger logger = LoggerFactory.getLogger(NotificationController.class);
 
@@ -67,6 +79,21 @@ public class NotificationController {
         response.setMessage("Notification service is operational");
         response.setTimestamp(System.currentTimeMillis());
         return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/test")
+    public ResponseEntity<String> testNotification(@RequestParam( defaultValue = "SWIFTSEND" ) ProviderType providerType ) {
+        NotificationQueueMessage testMessage = new NotificationQueueMessage(
+                UUID.randomUUID(),
+                "+120312031230",
+                "Afsrpaak dingejte",
+                "safdsafsafsa",
+                providerType,
+                "APOINTMENT_REMINDER",
+                Instant.now()
+        );
+        rabbitMQProducer.publish(testMessage);
+        return ResponseEntity.accepted().body("IS IN QUeUE: " + providerType);
     }
 
     // Inner class for status response
