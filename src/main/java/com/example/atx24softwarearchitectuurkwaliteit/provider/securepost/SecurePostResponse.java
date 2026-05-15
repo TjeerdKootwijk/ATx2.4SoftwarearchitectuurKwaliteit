@@ -21,4 +21,13 @@ public class SecurePostResponse {
     public String getTrackingId() { return trackingId; }
     public String getErrorMessage() { return errorMessage; }
     public String getDeliveryTimestamp() { return deliveryTimestamp; }
+
+    @Override
+    public String toString() {
+        return "SecurePostResponse{" +
+                "delivered=" + delivered +
+                ", trackingId='" + trackingId + '\'' +
+                ", errorMessage='" + errorMessage + '\'' +
+                '}';
+    }
 }

@@ -15,6 +15,7 @@ public class SecurePostClient {
     private static final Logger log = LoggerFactory.getLogger(SecurePostClient.class);
 
     private final WebClient webClient;
+    private final String baseUrl;
     private final String clientId;
     private final String clientSecret;
     private final String studentGroup;
@@ -28,13 +29,14 @@ public class SecurePostClient {
         @Value("${providers.securepost.client-secret}") String clientSecret,
         @Value("${providers.student-group}") String studentGroup) {
         this.webClient = webClientBuilder.baseUrl(baseUrl).build();
+        this.baseUrl = baseUrl;
         this.clientId = clientId;
         this.clientSecret = clientSecret;
         this.studentGroup = studentGroup;
     }
 
     public SecurePostResponse send(SecurePostRequest request) {
-        log.info("Sending SecurePost message to recipient: {}", request.getRecipient());
+        log.info("Sending SecurePost request to: {}/securepost/message", baseUrl);
         log.debug("Request body: {}", request);
 
         String token = getValidToken();
@@ -42,6 +44,8 @@ public class SecurePostClient {
             log.error("Could not obtain SecurePost JWT token");
             return null;
         }
+
+        log.debug("X-STUDENT-GROUP: {}", studentGroup);
 
         return webClient.post()
             .uri("/securepost/message")
@@ -58,7 +62,7 @@ public class SecurePostClient {
                 })
             )
             .bodyToMono(SecurePostResponse.class)
-            .doOnNext(response -> log.debug("SecurePost response: delivered={}, trackingId={}", response.isDelivered(), response.getTrackingId()))
+            .doOnNext(response -> log.debug("SecurePost response: {}", response))
             .onErrorResume(error -> {
                 log.error("Error communicating with SecurePost API", error);
                 return Mono.empty();
@@ -67,35 +71,38 @@ public class SecurePostClient {
     }
 
     private synchronized String getValidToken() {
-        if (cachedToken == null || Instant.now().isAfter(tokenExpiry.minusSeconds(30))) {
-            log.info("Obtaining new SecurePost JWT token");
-            SecurePostAuthResponse authResponse = webClient.post()
-                .uri("/securepost/auth")
-                .header("X-STUDENT-GROUP", studentGroup)
-                .header("Content-Type", "application/json")
-                .bodyValue(new SecurePostAuthRequest(clientId, clientSecret))
-                .retrieve()
-                .onStatus(HttpStatusCode::isError, clientResponse ->
-                    clientResponse.bodyToMono(String.class).flatMap(body -> {
-                        log.error("SecurePost auth error: {} - {}", clientResponse.statusCode(), body);
-                        return Mono.error(new SecurePostException("SecurePost auth failed: " + body));
-                    })
-                )
-                .bodyToMono(SecurePostAuthResponse.class)
-                .onErrorResume(error -> {
-                    log.error("Error obtaining SecurePost token", error);
-                    return Mono.empty();
-                })
-                .block();
-
-            if (authResponse != null && authResponse.getAccessToken() != null) {
-                cachedToken = authResponse.getAccessToken();
-                tokenExpiry = Instant.now().plusSeconds(authResponse.getExpiresIn());
-                log.info("SecurePost JWT token obtained, expires in {}s", authResponse.getExpiresIn());
-            } else {
-                cachedToken = null;
-            }
+        if (cachedToken != null && Instant.now().isBefore(tokenExpiry.minusSeconds(30))) {
+            return cachedToken;
         }
+
+        log.debug("Refreshing SecurePost JWT token");
+        SecurePostAuthResponse authResponse = webClient.post()
+            .uri("/securepost/auth")
+            .header("X-STUDENT-GROUP", studentGroup)
+            .header("Content-Type", "application/json")
+            .bodyValue(new SecurePostAuthRequest(clientId, clientSecret))
+            .retrieve()
+            .onStatus(HttpStatusCode::isError, clientResponse ->
+                clientResponse.bodyToMono(String.class).flatMap(body -> {
+                    log.error("SecurePost auth error: {} - Response body: {}", clientResponse.statusCode(), body);
+                    return Mono.error(new SecurePostException("SecurePost auth failed: " + body));
+                })
+            )
+            .bodyToMono(SecurePostAuthResponse.class)
+            .onErrorResume(error -> {
+                log.error("Error communicating with SecurePost API", error);
+                return Mono.empty();
+            })
+            .block();
+
+        if (authResponse != null && authResponse.getAccessToken() != null) {
+            cachedToken = authResponse.getAccessToken();
+            tokenExpiry = Instant.now().plusSeconds(authResponse.getExpiresIn());
+            log.debug("SecurePost JWT token refreshed, expires in {}s", authResponse.getExpiresIn());
+        } else {
+            cachedToken = null;
+        }
+
         return cachedToken;
     }
 }
