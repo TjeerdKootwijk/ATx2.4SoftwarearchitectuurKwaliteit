@@ -65,6 +65,8 @@ services:
       PROVIDERS_BASE_URL: http://fakeMessageProvider:8080
       PROVIDERS_STUDENT_GROUP: c1
       PROVIDERS_SWIFTSEND_API_KEY: your-api-key-here
+      PROVIDERS_SECUREPOST_CLIENT_ID: securepost-client-id
+      PROVIDERS_SECUREPOST_CLIENT_SECRET: securepost-secret-key
     ports:
       - "8080:8080"
       - "9090:9090"     # Prometheus metrics (if configured)
