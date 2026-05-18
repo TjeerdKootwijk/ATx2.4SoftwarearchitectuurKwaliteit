@@ -12,6 +12,7 @@ import org.slf4j.LoggerFactory;
 import java.time.LocalDateTime;
 import java.util.Base64;
 import java.util.Collection;
+import java.util.List;
 
 @Service
 public class PollingJob {
@@ -53,28 +54,50 @@ public class PollingJob {
         String tenantId = tenant.getTenantId();
 
         try {
-            // Basic Auth header opbouwen
             String credentials = tenant.getOpenMrsUsername() + ":" + tenant.getOpenMrsPassword();
             String encoded = Base64.getEncoder().encodeToString(credentials.getBytes());
 
             HttpHeaders headers = new HttpHeaders();
             headers.set("Authorization", "Basic " + encoded);
             headers.set("Accept", "application/json");
-            HttpEntity<String> entity = new HttpEntity<>(headers);
 
-            // Eerst sessie starten (vereist door OpenMRS)
+            // Sessie starten
             String sessionUrl = tenant.getOpenMrsBaseUrl() + "/ws/rest/v1/session";
+            HttpEntity<String> sessionEntity = new HttpEntity<>(headers);
+
             ResponseEntity<String> sessionResponse = restTemplate.exchange(
-                    sessionUrl, HttpMethod.GET, entity, String.class
+                    sessionUrl, HttpMethod.GET, sessionEntity, String.class
             );
 
-            logger.info("OpenMRS verbinding gelukt voor tenant {}: status {}",
-                    tenantId, sessionResponse.getStatusCode());
+            // JSESSIONID cookie veilig ophalen
+            String jsessionId = null;
+            List<String> cookies = sessionResponse.getHeaders().get("Set-Cookie");
+
+            if (cookies != null) {
+                for (String cookie : cookies) {
+                    if (cookie.startsWith("JSESSIONID=")) {
+                        jsessionId = cookie.split(";")[0];
+                        break;
+                    }
+                }
+            }
+
+            logger.info("OpenMRS sessie gestart voor tenant {}, JSESSIONID: {}",
+                    tenantId, jsessionId != null ? "verkregen" : "niet gevonden");
 
             // Appointments ophalen
-            String appointmentsUrl = tenant.getOpenMrsBaseUrl() + "/ws/rest/v1/appointmentscheduling/appointment?v=full";
+            HttpHeaders appointmentHeaders = new HttpHeaders();
+            appointmentHeaders.set("Authorization", "Basic " + encoded);
+            appointmentHeaders.set("Accept", "application/json");
+            if (jsessionId != null) {
+                appointmentHeaders.set("Cookie", jsessionId);
+            }
+
+            HttpEntity<String> appointmentEntity = new HttpEntity<>(appointmentHeaders);
+            String appointmentsUrl = tenant.getOpenMrsBaseUrl() + "/ws/rest/v1/appointments?v=full";
+
             ResponseEntity<String> response = restTemplate.exchange(
-                    appointmentsUrl, HttpMethod.GET, entity, String.class
+                    appointmentsUrl, HttpMethod.GET, appointmentEntity, String.class
             );
 
             logger.info("Appointments opgehaald voor tenant {}: status {}",
@@ -82,7 +105,7 @@ public class PollingJob {
             logger.debug("Response body: {}", response.getBody());
 
         } catch (Exception e) {
-            logger.error("Kon OpenMRS niet bereiken voor tenant {}: {}", tenantId, e.getMessage());
+            logger.error("Kon OpenMRS niet bereiken voor tenant {}: {}", tenantId, e.getMessage(), e);
         }
 
         tenantService.updateLastPolledAt(tenantId, LocalDateTime.now());
