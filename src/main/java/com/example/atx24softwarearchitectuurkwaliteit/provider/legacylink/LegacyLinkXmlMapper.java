@@ -12,6 +12,13 @@ import java.time.Instant;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+/**
+ * Utility klasse voor het serialiseren naar, en deserialiseren vanuit het LegacyLink XML-formaat.
+ * Waar modernere providers (zoals json/rest) vaak libraries als Jackson gebruiken, is hier
+ * gekozen voor een expliciete low-level StringBuilder- en DOM-parseroplossing.
+ * Dit is robuust én extra veilig ingesteld om XXE (XML eXternal Entity) vulnerabilities
+ * in de parsing via FEATURE_SECURE_PROCESSING te voorkomen (een security best-practice).
+ */
 final class LegacyLinkXmlMapper {
 
     private static final String NAMESPACE = "http://legacylink.fakecomworld.com/v1";

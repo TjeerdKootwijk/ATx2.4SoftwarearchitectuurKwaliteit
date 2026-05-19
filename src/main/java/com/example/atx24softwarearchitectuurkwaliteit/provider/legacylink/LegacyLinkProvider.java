@@ -8,8 +8,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+/**
+ * Concrete implementatie van de MessagingProvider interface, speciaal voor de "ouderwetse" 
+ * XML provider LegacyLink. De Service integreert naadloos in de bestaande ProviderFactory
+ * zodat NotificationQueue-berichten automatisch kunnen worden doorgestuurd via deze klasse.
+ */
 @Service
 public class LegacyLinkProvider implements MessagingProvider {
+
 
     private static final Logger log = LoggerFactory.getLogger(LegacyLinkProvider.class);
     private final LegacyLinkClient legacyLinkClient;
@@ -18,11 +24,20 @@ public class LegacyLinkProvider implements MessagingProvider {
         this.legacyLinkClient = legacyLinkClient;
     }
 
+    /**
+     * Zorgt ervoor dat de ProviderFactory deze instance kiest wanneer berichten in de
+     * queue staan vlagd met type 'LEGACYLINK'.
+     */
     @Override
     public ProviderType GetType() {
         return ProviderType.LEGACYLINK;
     }
 
+    /**
+     * Mapping van het algemene inter-service queue bericht (NotificationQueueMessage) 
+     * naar de specifieke attributen voor LegacyLink. Activeert vervolgens de daadwerkelijke verzending
+     * in de LegacyLinkClient, waarna het resultaat teruggegeven wordt voor logs/verwerking.
+     */
     @Override
     public ProviderSendResult sendMessage(NotificationQueueMessage message) {
         try {
