@@ -3,81 +3,57 @@ package com.example.atx24softwarearchitectuurkwaliteit.provider.asyncflow;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 public class AsyncFlowResponse {
-    @JsonProperty("queued")
-    private boolean queued;
+    @JsonProperty("accepted")
+    private boolean accepted;
 
-    @JsonProperty("queueId")
-    private String queueId;
+    @JsonProperty("trackingId")
+    private String trackingId;
 
-    @JsonProperty("estimatedDelivery")
-    private String estimatedDelivery;
+    @JsonProperty("message")
+    private String message;
 
-    @JsonProperty("status")
-    private String status;
+    @JsonProperty("submittedAt")
+    private String submittedAt;
 
-    @JsonProperty("errorCode")
-    private String errorCode;
-
-    @JsonProperty("errorMessage")
-    private String errorMessage;
-
-    public boolean isQueued() { 
-        return queued; 
-    }
-    
-    public void setQueued(boolean queued) { 
-        this.queued = queued; 
+    public boolean isAccepted() {
+        return accepted;
     }
 
-    public String getQueueId() { 
-        return queueId; 
-    }
-    
-    public void setQueueId(String queueId) { 
-        this.queueId = queueId; 
+    public void setAccepted(boolean accepted) {
+        this.accepted = accepted;
     }
 
-    public String getEstimatedDelivery() { 
-        return estimatedDelivery; 
-    }
-    
-    public void setEstimatedDelivery(String estimatedDelivery) { 
-        this.estimatedDelivery = estimatedDelivery; 
+    public String getTrackingId() {
+        return trackingId;
     }
 
-    public String getStatus() { 
-        return status; 
-    }
-    
-    public void setStatus(String status) { 
-        this.status = status; 
+    public void setTrackingId(String trackingId) {
+        this.trackingId = trackingId;
     }
 
-    public String getErrorCode() { 
-        return errorCode; 
-    }
-    
-    public void setErrorCode(String errorCode) { 
-        this.errorCode = errorCode; 
+    public String getMessage() {
+        return message;
     }
 
-    public String getErrorMessage() { 
-        return errorMessage; 
+    public void setMessage(String message) {
+        this.message = message;
     }
-    
-    public void setErrorMessage(String errorMessage) { 
-        this.errorMessage = errorMessage; 
+
+    public String getSubmittedAt() {
+        return submittedAt;
+    }
+
+    public void setSubmittedAt(String submittedAt) {
+        this.submittedAt = submittedAt;
     }
 
     @Override
     public String toString() {
         return "AsyncFlowResponse{" +
-                "queued=" + queued +
-                ", queueId='" + queueId + '\'' +
-                ", estimatedDelivery='" + estimatedDelivery + '\'' +
-                ", status='" + status + '\'' +
-                ", errorCode='" + errorCode + '\'' +
-                ", errorMessage='" + errorMessage + '\'' +
+                "accepted=" + accepted +
+                ", trackingId='" + trackingId + '\'' +
+                ", message='" + message + '\'' +
+                ", submittedAt='" + submittedAt + '\'' +
                 '}';
     }
 }

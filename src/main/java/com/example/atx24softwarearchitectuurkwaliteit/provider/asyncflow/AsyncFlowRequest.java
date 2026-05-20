@@ -6,16 +6,16 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class AsyncFlowRequest {
 
-    @JsonProperty("Destination")
+    @JsonProperty("destination")
     private String recipient;
 
-    @JsonProperty("Content")
+    @JsonProperty("content")
     private String message;
 
-    @JsonProperty("Priority")
+    @JsonProperty("priority")
     private String priority;
 
-    @JsonProperty("Template")
+    @JsonProperty("template")
     private String template;
 
     public String getRecipient() {

@@ -31,23 +31,20 @@ public class AsyncFlowProvider implements MessagingProvider {
             AsyncFlowRequest request = new AsyncFlowRequest();
             request.setRecipient(message.getRecipient());
             request.setMessage(message.getBody());
-            request.setPriority("NORMAL");
-            request.setTemplate("default");
+            request.setPriority("normal");
 
             AsyncFlowResponse response = asyncFlowClient.send(request);
 
-            if (response != null && response.isQueued()) {
-                log.info("AsyncFlow message queued successfully with ID: {}", response.getQueueId());
-                return ProviderSendResult.send(response.getQueueId());
+            if (response != null && response.isAccepted()) {
+                log.info("AsyncFlow message queued successfully with ID: {}", response.getTrackingId());
+                return ProviderSendResult.send(response.getTrackingId());
             } else {
-                log.warn("AsyncFlow message failed to queue: {}", 
-                        response != null ? response.getErrorMessage() : "No response");
+                log.warn("AsyncFlow message failed to queue: {}",
+                        response != null ? response.getMessage() : "No response");
                 return ProviderSendResult.error(message.getNotificationId().toString());
             }
 
         } catch (Exception e) {
-            log.error("Error sending AsyncFlow message to {}: {}", 
-                    message.getRecipient(), e.getMessage(), e);
             return ProviderSendResult.error(message.getNotificationId().toString());
         }
     }
