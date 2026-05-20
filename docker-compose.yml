@@ -47,6 +47,8 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: atx24-app
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       postgres:
         condition: service_healthy
@@ -70,22 +72,14 @@ services:
     ports:
       - "8080:8080"
       - "9090:9090"     # Prometheus metrics (if configured)
+    env_file:
+      - .env
     healthcheck:
       test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:8080/actuator/health"]
       interval: 30s
       timeout: 10s
       start_period: 40s
       retries: 3
-
-  webhook-tester:
-    image: mcr.microsoft.com/powershell
-    depends_on:
-      app:
-        condition: service_healthy
-    volumes:
-      - ./scripts:/scripts
-    command: >
-      pwsh /scripts/test-webhook.ps1
 
 volumes:
   postgres-data:
