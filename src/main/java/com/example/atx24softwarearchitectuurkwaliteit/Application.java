@@ -33,7 +33,6 @@ public class Application {
             tenant1.setOpenMrsBaseUrl(baseUrl);
             tenant1.setOpenMrsUsername(username);
             tenant1.setOpenMrsPassword(password);
-            tenant1.setWebhookSecret(env.getProperty("WEBHOOK_SECRET_001", "default-webhook-secret-001"));
             tenant1.setActive(true);
             tenantService.registerTenant(tenant1);
             System.out.println("✅ Tenant-001 loaded successfully from .env");
@@ -50,7 +49,6 @@ public class Application {
             tenant2.setOpenMrsBaseUrl(baseUrl);
             tenant2.setOpenMrsUsername(username2);
             tenant2.setOpenMrsPassword(password2);
-            tenant2.setWebhookSecret(env.getProperty("WEBHOOK_SECRET_002", "default-webhook-secret-002"));
             tenant2.setActive(true);
             tenantService.registerTenant(tenant2);
             System.out.println("✅ Tenant-002 loaded successfully from .env");
