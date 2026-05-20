@@ -1,0 +1,190 @@
+{
+  "uid": "rabbitmq-overview",
+  "title": "RabbitMQ Overview",
+  "tags": ["rabbitmq"],
+  "timezone": "browser",
+  "schemaVersion": 38,
+  "version": 1,
+  "refresh": "5s",
+  "time": { "from": "now-1h", "to": "now" },
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Connections",
+      "gridPos": { "x": 0, "y": 0, "w": 4, "h": 4 },
+      "datasource": { "uid": "prometheus-rabbitmq", "type": "prometheus" },
+      "options": { "colorMode": "background", "graphMode": "none", "textMode": "auto" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] }
+        }
+      },
+      "targets": [{ "expr": "rabbitmq_connections", "legendFormat": "Connections", "refId": "A" }]
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Channels",
+      "gridPos": { "x": 4, "y": 0, "w": 4, "h": 4 },
+      "datasource": { "uid": "prometheus-rabbitmq", "type": "prometheus" },
+      "options": { "colorMode": "background", "graphMode": "none", "textMode": "auto" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "blue", "value": null }] }
+        }
+      },
+      "targets": [{ "expr": "rabbitmq_channels", "legendFormat": "Channels", "refId": "A" }]
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Queues",
+      "gridPos": { "x": 8, "y": 0, "w": 4, "h": 4 },
+      "datasource": { "uid": "prometheus-rabbitmq", "type": "prometheus" },
+      "options": { "colorMode": "background", "graphMode": "none", "textMode": "auto" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "purple", "value": null }] }
+        }
+      },
+      "targets": [{ "expr": "rabbitmq_queues", "legendFormat": "Queues", "refId": "A" }]
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Consumers",
+      "gridPos": { "x": 12, "y": 0, "w": 4, "h": 4 },
+      "datasource": { "uid": "prometheus-rabbitmq", "type": "prometheus" },
+      "options": { "colorMode": "background", "graphMode": "none", "textMode": "auto" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "orange", "value": null }] }
+        }
+      },
+      "targets": [{ "expr": "rabbitmq_consumers", "legendFormat": "Consumers", "refId": "A" }]
+    },
+    {
+      "id": 5,
+      "type": "stat",
+      "title": "Messages Ready",
+      "gridPos": { "x": 16, "y": 0, "w": 4, "h": 4 },
+      "datasource": { "uid": "prometheus-rabbitmq", "type": "prometheus" },
+      "options": { "colorMode": "background", "graphMode": "none", "textMode": "auto" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 100 }, { "color": "red", "value": 1000 }] }
+        }
+      },
+      "targets": [{ "expr": "sum(rabbitmq_queue_messages_ready)", "legendFormat": "Ready", "refId": "A" }]
+    },
+    {
+      "id": 6,
+      "type": "stat",
+      "title": "Messages Unacked",
+      "gridPos": { "x": 20, "y": 0, "w": 4, "h": 4 },
+      "datasource": { "uid": "prometheus-rabbitmq", "type": "prometheus" },
+      "options": { "colorMode": "background", "graphMode": "none", "textMode": "auto" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 10 }, { "color": "red", "value": 100 }] }
+        }
+      },
+      "targets": [{ "expr": "sum(rabbitmq_queue_messages_unacked)", "legendFormat": "Unacked", "refId": "A" }]
+    },
+    {
+      "id": 7,
+      "type": "timeseries",
+      "title": "Queued Messages",
+      "gridPos": { "x": 0, "y": 4, "w": 24, "h": 8 },
+      "datasource": { "uid": "prometheus-rabbitmq", "type": "prometheus" },
+      "fieldConfig": {
+        "defaults": { "custom": { "lineWidth": 2, "fillOpacity": 10 } },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "Ready" }, "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "green" } }] },
+          { "matcher": { "id": "byName", "options": "Unacked" }, "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "yellow" } }] },
+          { "matcher": { "id": "byName", "options": "Total" }, "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "red" } }] }
+        ]
+      },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" } },
+      "targets": [
+        { "expr": "sum(rabbitmq_queue_messages_ready)", "legendFormat": "Ready", "refId": "A" },
+        { "expr": "sum(rabbitmq_queue_messages_unacked)", "legendFormat": "Unacked", "refId": "B" },
+        { "expr": "sum(rabbitmq_queue_messages)", "legendFormat": "Total", "refId": "C" }
+      ]
+    },
+    {
+      "id": 8,
+      "type": "timeseries",
+      "title": "Message Rates",
+      "gridPos": { "x": 0, "y": 12, "w": 24, "h": 8 },
+      "datasource": { "uid": "prometheus-rabbitmq", "type": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "custom": { "lineWidth": 2, "fillOpacity": 5 }
+        }
+      },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" } },
+      "targets": [
+        { "expr": "sum(rate(rabbitmq_channel_messages_published_total[1m]))", "legendFormat": "Publish", "refId": "A" },
+        { "expr": "sum(rate(rabbitmq_channel_messages_delivered_ack_total[1m]))", "legendFormat": "Deliver (auto ack)", "refId": "B" },
+        { "expr": "sum(rate(rabbitmq_channel_messages_acknowledged_total[1m]))", "legendFormat": "Consumer ack", "refId": "C" },
+        { "expr": "sum(rate(rabbitmq_channel_messages_redelivered_total[1m]))", "legendFormat": "Redelivered", "refId": "D" },
+        { "expr": "sum(rate(rabbitmq_channel_messages_unroutable_dropped_total[1m]))", "legendFormat": "Unroutable (drop)", "refId": "E" }
+      ]
+    },
+    {
+      "id": 9,
+      "type": "timeseries",
+      "title": "Connection Operations",
+      "gridPos": { "x": 0, "y": 20, "w": 8, "h": 6 },
+      "datasource": { "uid": "prometheus-rabbitmq", "type": "prometheus" },
+      "fieldConfig": {
+        "defaults": { "unit": "reqps", "custom": { "lineWidth": 2, "fillOpacity": 5 } }
+      },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" } },
+      "targets": [
+        { "expr": "sum(rate(rabbitmq_connections_opened_total[1m]))", "legendFormat": "Created", "refId": "A" },
+        { "expr": "sum(rate(rabbitmq_connections_closed_total[1m]))", "legendFormat": "Closed", "refId": "B" }
+      ]
+    },
+    {
+      "id": 10,
+      "type": "timeseries",
+      "title": "Channel Operations",
+      "gridPos": { "x": 8, "y": 20, "w": 8, "h": 6 },
+      "datasource": { "uid": "prometheus-rabbitmq", "type": "prometheus" },
+      "fieldConfig": {
+        "defaults": { "unit": "reqps", "custom": { "lineWidth": 2, "fillOpacity": 5 } }
+      },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" } },
+      "targets": [
+        { "expr": "sum(rate(rabbitmq_channels_opened_total[1m]))", "legendFormat": "Created", "refId": "A" },
+        { "expr": "sum(rate(rabbitmq_channels_closed_total[1m]))", "legendFormat": "Closed", "refId": "B" }
+      ]
+    },
+    {
+      "id": 11,
+      "type": "timeseries",
+      "title": "Queue Operations",
+      "gridPos": { "x": 16, "y": 20, "w": 8, "h": 6 },
+      "datasource": { "uid": "prometheus-rabbitmq", "type": "prometheus" },
+      "fieldConfig": {
+        "defaults": { "unit": "reqps", "custom": { "lineWidth": 2, "fillOpacity": 5 } }
+      },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" } },
+      "targets": [
+        { "expr": "sum(rate(rabbitmq_queue_declarations_total[1m]))", "legendFormat": "Declared", "refId": "A" },
+        { "expr": "sum(rate(rabbitmq_queues_created_total[1m]))", "legendFormat": "Created", "refId": "B" },
+        { "expr": "sum(rate(rabbitmq_queues_deleted_total[1m]))", "legendFormat": "Deleted", "refId": "C" }
+      ]
+    }
+  ]
+}
