@@ -1,7 +1,7 @@
 # PowerShell Webhook Test Script - Fixed HMAC
 # Uses proper PowerShell syntax for HMACSHA256
 
-$BaseUrl = "http://localhost:8080"
+$BaseUrl = "http://app:8080"
 $TenantId = "tenant-001"
 $Secret = "webhook-secret-001-for-hmac"
 

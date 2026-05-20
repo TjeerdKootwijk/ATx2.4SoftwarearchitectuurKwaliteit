@@ -1,20 +1,18 @@
 package com.example.atx24softwarearchitectuurkwaliteit.config;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import org.springframework.amqp.core.*;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
-import org.springframework.amqp.core.Binding;
-import org.springframework.amqp.core.BindingBuilder;
-import org.springframework.amqp.core.DirectExchange;
-import org.springframework.amqp.core.Queue;
+//import org.springframework.amqp.support.converter.JacksonJsonMessageConverter;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.client.RestTemplate;
 
 @Configuration
 public class RabbitMQConfig {
+
 
     // Appointment Events Configuration
     public static final String APPOINTMENT_EXCHANGE = "appointment.events";
@@ -25,6 +23,9 @@ public class RabbitMQConfig {
     public static final String NOTIFICATION_EXCHANGE = "notifications.exchange";
     public static final String NOTIFICATION_QUEUE = "notification.queue";
     public static final String NOTIFICATION_ROUTING_KEY = "notification.created";
+    public static final String DEAD_LETTER_QUEUE = "notification.dead-letter.queue";
+    public static final String DEAD_LETTER_EXCHANGE = "notification.dead-letter.exchange";
+    public static final String DEAD_LETTER_ROUTING_KEY = "notification.dead-letter";
 
     // ========== Appointment Events ==========
     @Bean
@@ -52,26 +53,44 @@ public class RabbitMQConfig {
 
     @Bean
     public Queue notificationQueue() {
-        return new Queue(NOTIFICATION_QUEUE, true);
+        return QueueBuilder.durable(NOTIFICATION_QUEUE)
+                .deadLetterExchange(DEAD_LETTER_EXCHANGE)
+                .deadLetterRoutingKey(DEAD_LETTER_ROUTING_KEY)
+                .build();
     }
 
     @Bean
-    public Binding notificationBinding(Queue notificationQueue, DirectExchange notificationExchange) {
+    public DirectExchange deadLetterExchange() {
+        return new DirectExchange(DEAD_LETTER_EXCHANGE);
+    }
+
+    @Bean
+    public Queue deadLetterQueue() {
+        return QueueBuilder.durable(DEAD_LETTER_QUEUE).build();
+    }
+
+    @Bean
+    public Binding notificationBinding(
+            @Qualifier("notificationQueue") Queue notificationQueue,
+            @Qualifier("notificationExchange") DirectExchange notificationExchange) {
         return BindingBuilder.bind(notificationQueue)
                 .to(notificationExchange)
                 .with(NOTIFICATION_ROUTING_KEY);
     }
 
     @Bean
-    public ObjectMapper objectMapper() {
-           ObjectMapper mapper = new ObjectMapper();
-           mapper.registerModule(new JavaTimeModule());
-           return mapper;
+    public Binding deadLetterBinding(
+            @Qualifier("deadLetterQueue") Queue deadLetterQueue,
+            @Qualifier("deadLetterExchange") DirectExchange deadLetterExchange) {
+
+        return BindingBuilder.bind(deadLetterQueue)
+                .to(deadLetterExchange)
+                .with(DEAD_LETTER_ROUTING_KEY);
     }
 
     @Bean
-    public Jackson2JsonMessageConverter jacksonMessageConverter(ObjectMapper mapper) {
-        return new Jackson2JsonMessageConverter(mapper);
+    public Jackson2JsonMessageConverter jacksonMessageConverter() {
+        return new Jackson2JsonMessageConverter();
     }
 
     @Bean
