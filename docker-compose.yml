@@ -1,10 +1,10 @@
-
 services:
-  #fake message providers
+  # fake message providers
   fakeMessageProvider:
     image: ghcr.io/avansict/in2.4-fakecomworld:main
     ports:
       - "1337:8080"
+
   # PostgreSQL Database
   postgres:
     image: postgres:17-alpine
@@ -31,8 +31,8 @@ services:
       RABBITMQ_DEFAULT_USER: guest
       RABBITMQ_DEFAULT_PASS: guest
     ports:
-      - "5672:5672"      # AMQP port
-      - "15672:15672"    # Management UI
+      - "5672:5672"
+      - "15672:15672"
     volumes:
       - rabbitmq-data:/var/lib/rabbitmq
     healthcheck:
@@ -54,6 +54,8 @@ services:
         condition: service_healthy
       fakeMessageProvider:
         condition: service_started
+      lgtm:
+        condition: service_started
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/atx24db
       SPRING_DATASOURCE_USERNAME: postgres
@@ -63,19 +65,27 @@ services:
       SPRING_RABBITMQ_USERNAME: guest
       SPRING_RABBITMQ_PASSWORD: guest
       PROVIDERS_BASE_URL: http://fakeMessageProvider:8080
-      PROVIDERS_STUDENT_GROUP: c1
-      PROVIDERS_SWIFTSEND_API_KEY: your-api-key-here
-      PROVIDERS_SECUREPOST_CLIENT_ID: securepost-client-id
-      PROVIDERS_SECUREPOST_CLIENT_SECRET: securepost-secret-key
+
+      # 🔥 OTEL CONFIG (BELANGRIJK)
+      OTEL_SERVICE_NAME: atx24-app
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://lgtm:4317
+      OTEL_EXPORTER_OTLP_PROTOCOL: grpc
+      OTEL_LOGS_EXPORTER: otlp
+      OTEL_METRICS_EXPORTER: otlp
+      OTEL_TRACES_EXPORTER: otlp
+
     ports:
       - "8080:8080"
-      - "9090:9090"     # Prometheus metrics (if configured)
-    healthcheck:
-      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:8080/actuator/health"]
-      interval: 30s
-      timeout: 10s
-      start_period: 40s
-      retries: 3
+
+  # 🔥 LGTM STACK (Grafana + Loki + Tempo + Mimir + OTEL Collector)
+  lgtm:
+    image: grafana/otel-lgtm:latest
+    container_name: lgtm
+    ports:
+      - "3000:3000"   # Grafana
+      - "4317:4317"   # OTLP gRPC
+      - "4318:4318"   # OTLP HTTP
+
 
   webhook-tester:
     image: mcr.microsoft.com/powershell
@@ -90,4 +100,3 @@ services:
 volumes:
   postgres-data:
   rabbitmq-data:
-

@@ -13,7 +13,7 @@ public class Application {
 
     public static void main(String[] args) {
         ApplicationContext context = SpringApplication.run(Application.class, args);
-        
+
         // Initialize sample tenants for demo/testing
         TenantService tenantService = context.getBean(TenantService.class);
         initializeSampleTenants(tenantService);
