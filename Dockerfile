@@ -21,6 +21,9 @@ WORKDIR /app
 # Copy built JAR from builder
 COPY --from=builder /app/build/libs/*.jar app.jar
 
+# Download OpenTelemetry Java agent
+ADD https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/latest/download/opentelemetry-javaagent.jar otel-agent.jar
+
 # Expose port (default Spring Boot port)
 EXPOSE 8080
 
@@ -28,5 +31,5 @@ EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
     CMD wget -q -O - http://localhost:8080/actuator/health || exit 1
 
-# Run the application
-ENTRYPOINT ["java", "-jar", "app.jar"]
+# Run the application with OpenTelemetry agent
+ENTRYPOINT ["java", "-javaagent:/app/otel-agent.jar", "-jar", "app.jar"]
