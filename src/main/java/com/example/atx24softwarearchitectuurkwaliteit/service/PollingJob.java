@@ -1,116 +1,116 @@
 package com.example.atx24softwarearchitectuurkwaliteit.service;
 
-import com.example.atx24softwarearchitectuurkwaliteit.model.AppointmentChangedEvent;
 import com.example.atx24softwarearchitectuurkwaliteit.model.TenantConfiguration;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.*;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import java.time.LocalDateTime;
-import java.util.Collection;
-import java.util.UUID;
 
-/**
- * Polling job that runs periodically to fetch missed appointment events
- * This serves as a fallback mechanism if webhooks were missed
- */
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.util.Base64;
+import java.util.Collection;
+
 @Service
 public class PollingJob {
 
     private static final Logger logger = LoggerFactory.getLogger(PollingJob.class);
-    private static final String APPOINTMENT_EVENTS_EXCHANGE = "appointment.events";
-    private static final String APPOINTMENT_ROUTING_KEY = "appointment.changed";
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Autowired
     private TenantService tenantService;
 
     @Autowired
-    private IdempotencyService idempotencyService;
+    private RestTemplate restTemplate;
 
-    @Autowired
-    private RabbitTemplate rabbitTemplate;
-
-    /**
-     * Run polling every 5 minutes
-     * Fetch appointments from OpenMRS REST API for each tenant
-     * Check for new/updated appointments since last poll
-     */
-    @Scheduled(fixedDelay = 300000, initialDelay = 60000)  // 5 minutes, start after 1 minute
+    @Scheduled(fixedDelay = 300000, initialDelay = 10000)
     public void pollOpenMrsAppointments() {
-        logger.info("Starting appointment polling job");
+        logger.info("=== Starting appointment polling job ===");
 
         Collection<TenantConfiguration> activeTenants = tenantService.getAllActiveTenants();
+        logger.info("Aantal actieve tenants: {}", activeTenants.size());
 
         for (TenantConfiguration tenant : activeTenants) {
-            try {
-                pollTenantAppointments(tenant);
-            } catch (Exception e) {
-                logger.error("Error polling appointments for tenant {}: {}", tenant.getTenantId(), e.getMessage());
-            }
+            pollTenantAppointments(tenant);
         }
 
-        logger.info("Completed appointment polling job");
+        logger.info("=== Completed appointment polling job ===");
     }
 
-    /**
-     * Poll appointments for a specific tenant
-     * Fetches since lastPolledAt timestamp
-     */
     private void pollTenantAppointments(TenantConfiguration tenant) {
         String tenantId = tenant.getTenantId();
-        LocalDateTime lastPolled = tenantService.getLastPolledAt(tenantId);
 
-        logger.debug("Polling appointments for tenant {} since: {}", tenantId, lastPolled);
+        try {
+            String credentials = tenant.getOpenMrsUsername() + ":" + tenant.getOpenMrsPassword();
+            String encoded = Base64.getEncoder().encodeToString(credentials.getBytes());
 
-        // In production, this would call OpenMRS REST API
-        // Example: GET /openmrs/ws/rest/v1/appointments?v=full&since=2026-05-08T10:00:00
+            String appointmentsUrl = tenant.getOpenMrsBaseUrl() + "/ws/rest/v1/appointments?v=full";
 
-        // For now, simulate polling
-        simulatePollingForTenant(tenant, lastPolled);
+            logger.info("Polling tenant {} → URL: {}", tenantId, appointmentsUrl);
 
-        // Update lastPolledAt
-        tenantService.updateLastPolledAt(tenantId, LocalDateTime.now());
-        logger.debug("Updated lastPolledAt for tenant {}", tenantId);
+            HttpHeaders headers = new HttpHeaders();
+            headers.set("Authorization", "Basic " + encoded);
+            headers.set("Accept", "application/json");
+
+            ResponseEntity<String> response = restTemplate.exchange(
+                    appointmentsUrl, HttpMethod.GET, new HttpEntity<>(headers), String.class);
+
+            logger.info("Status tenant {}: {}", tenantId, response.getStatusCode());
+
+            if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
+                processAppointmentsJson(response.getBody(), tenantId);
+            }
+
+        } catch (Exception e) {
+            logger.error("Fout bij tenant {}: {}", tenantId, e.getMessage(), e);
+        }
     }
 
-    /**
-     * Simulate polling for testing
-     * In production, replace with actual OpenMRS REST API call
-     */
-    private void simulatePollingForTenant(TenantConfiguration tenant, LocalDateTime lastPolled) {
-        // This is where you would:
-        // 1. Call OpenMRS REST API with since parameter
-        // 2. Parse response for appointment changes
-        // 3. For each appointment, check idempotency
-        // 4. Publish new appointments to RabbitMQ
+    private void processAppointmentsJson(String jsonBody, String tenantId) {
+        try {
+            JsonNode root = objectMapper.readTree(jsonBody);
+            JsonNode appointments = root.isArray() ? root : root.path("results");
 
-        logger.debug("Simulated polling for tenant: {} since {}", tenant.getTenantId(), lastPolled);
-    }
+            logger.info("Tenant {} → Totaal {} afspraken opgehaald uit OpenMRS", tenantId, appointments.size());
 
-    /**
-     * Helper method to create AppointmentChangedEvent from API response
-     */
-    private AppointmentChangedEvent createEventFromApiResponse(String tenantId, String appointmentData) {
-        AppointmentChangedEvent event = new AppointmentChangedEvent();
-        event.setEventId(UUID.randomUUID().toString());
-        event.setTenantId(tenantId);
-        event.setSource("POLLING");
-        // Parse appointmentData and populate event fields
-        return event;
-    }
+            int relevanteCount = 0;
+            LocalDateTime now = LocalDateTime.now();
 
-    /**
-     * Publish event if not already processed
-     */
-    private void publishEventIfNew(AppointmentChangedEvent event) {
-        if (!idempotencyService.isEventProcessed(event.getEventId())) {
-            idempotencyService.markEventAsProcessed(event.getEventId());
-            rabbitTemplate.convertAndSend(APPOINTMENT_EVENTS_EXCHANGE, APPOINTMENT_ROUTING_KEY, event);
-            logger.info("Published polled appointment event: {}", event.getEventId());
-        } else {
-            logger.debug("Appointment event already processed (skipping): {}", event.getEventId());
+            for (JsonNode app : appointments) {
+                long startMillis = app.path("startDateTime").asLong(0);
+                if (startMillis == 0) continue;
+
+                LocalDateTime appointmentTime = Instant.ofEpochMilli(startMillis)
+                        .atZone(ZoneId.systemDefault())
+                        .toLocalDateTime();
+
+                // Filter: Alleen afspraken van nu tot max 7 dagen in de toekomst
+                if (appointmentTime.isAfter(now.minusHours(2)) && appointmentTime.isBefore(now.plusDays(7))) {
+                    relevanteCount++;
+
+                    String uuid = app.path("uuid").asText();
+                    String patientName = app.path("patient").path("name").asText("Onbekend");
+                    String status = app.path("status").asText("N/A");
+
+                    String formattedTime = appointmentTime.toString();
+
+                    logger.info("✅ RELEVANTE AFSPRAAK | Patiënt: {} | Tijd: {} | Status: {} | UUID: {}",
+                            patientName, formattedTime, status, uuid);
+                }
+            }
+
+            logger.info("Tenant {} → {} relevante afspraken gevonden (binnen nu + 7 dagen)",
+                    tenantId, relevanteCount);
+
+        } catch (Exception e) {
+            logger.error("Fout bij verwerken JSON voor tenant {}: {}", tenantId, e.getMessage(), e);
         }
     }
 }

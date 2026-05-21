@@ -6,7 +6,6 @@ public class TenantConfiguration {
     private String openMrsBaseUrl;
     private String openMrsUsername;
     private String openMrsPassword;
-    private String webhookSecret;  // For HMAC validation
     private boolean active;
     private String notificationProvider; // SMS, EMAIL, PUSH, etc.
     private String providerApiKey;
@@ -59,14 +58,6 @@ public class TenantConfiguration {
 
     public void setOpenMrsPassword(String openMrsPassword) {
         this.openMrsPassword = openMrsPassword;
-    }
-
-    public String getWebhookSecret() {
-        return webhookSecret;
-    }
-
-    public void setWebhookSecret(String webhookSecret) {
-        this.webhookSecret = webhookSecret;
     }
 
     public boolean isActive() {

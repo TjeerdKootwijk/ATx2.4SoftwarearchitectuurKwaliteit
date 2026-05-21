@@ -49,6 +49,8 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: atx24-app
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       postgres:
         condition: service_healthy
@@ -67,7 +69,6 @@ services:
       SPRING_RABBITMQ_USERNAME: guest
       SPRING_RABBITMQ_PASSWORD: guest
       PROVIDERS_BASE_URL: http://fakeMessageProvider:8080
-
       # 🔥 OTEL CONFIG (BELANGRIJK)
       OTEL_SERVICE_NAME: atx24-app
       OTEL_EXPORTER_OTLP_ENDPOINT: http://lgtm:4317
@@ -75,9 +76,22 @@ services:
       OTEL_LOGS_EXPORTER: otlp
       OTEL_METRICS_EXPORTER: otlp
       OTEL_TRACES_EXPORTER: otlp
+      PROVIDERS_STUDENT_GROUP: groupc1
+      PROVIDERS_SWIFTSEND_API_KEY: your-api-key-here
+      PROVIDERS_SECUREPOST_CLIENT_ID: securepost-client-id
+      PROVIDERS_SECUREPOST_CLIENT_SECRET: securepost-secret-key
+      PROVIDERS_ASYNCFLOW_API_KEY: ${PROVIDERS_ASYNCFLOW_API_KEY}
 
     ports:
       - "8080:8080"
+    env_file:
+      - .env
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      start_period: 40s
+      retries: 3
 
   # Prometheus for RabbitMQ metrics scraping
   prometheus:
@@ -103,17 +117,6 @@ services:
       - ./grafana/provisioning/datasources/rabbitmq-prometheus.yml:/otel-lgtm/grafana/conf/provisioning/datasources/rabbitmq-prometheus.yml
       - ./grafana/provisioning/dashboards/rabbitmq-dashboards.yml:/otel-lgtm/grafana/conf/provisioning/dashboards/rabbitmq-dashboards.yml
       - ./grafana/dashboards:/grafana/dashboards
-
-
-  webhook-tester:
-    image: mcr.microsoft.com/powershell
-    depends_on:
-      app:
-        condition: service_healthy
-    volumes:
-      - ./scripts:/scripts
-    command: >
-      pwsh /scripts/test-webhook.ps1
 
 volumes:
   postgres-data:
