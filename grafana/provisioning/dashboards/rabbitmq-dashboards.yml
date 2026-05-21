@@ -4,6 +4,7 @@ providers:
   - name: RabbitMQ
     type: file
     disableDeletion: false
+    updateIntervalSeconds: 10
     editable: true
     options:
       path: /grafana/dashboards
