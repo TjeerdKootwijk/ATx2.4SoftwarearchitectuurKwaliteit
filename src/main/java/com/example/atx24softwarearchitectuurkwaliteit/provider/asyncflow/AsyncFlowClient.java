@@ -9,7 +9,8 @@ import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
 @Component
-public class AsyncFlowClient {
+public class AsyncFlowClient implements AsyncFlowService {
+
     private static final Logger log = LoggerFactory.getLogger(AsyncFlowClient.class);
 
     private final WebClient webClient;
@@ -18,15 +19,16 @@ public class AsyncFlowClient {
     private final String studentGroup;
 
     public AsyncFlowClient(WebClient.Builder webClientBuilder,
-                          @Value("${providers.base-url}") String baseUrl,
-                          @Value("${providers.asyncflow.api-key}") String apiKey,
-                          @Value("${providers.student-group}") String studentGroup) {
+                           @Value("${providers.base-url}") String baseUrl,
+                           @Value("${providers.asyncflow.api-key}") String apiKey,
+                           @Value("${providers.student-group}") String studentGroup) {
         this.webClient = webClientBuilder.baseUrl(baseUrl).build();
         this.baseUrl = baseUrl;
         this.apiKey = apiKey;
         this.studentGroup = studentGroup;
     }
 
+    @Override
     public AsyncFlowResponse send(AsyncFlowRequest request) {
         log.info("Sending AsyncFlow request to: {}/asyncflow", baseUrl);
         log.debug("Request body: {}", request);
@@ -41,11 +43,11 @@ public class AsyncFlowClient {
                 .retrieve()
                 .onStatus(HttpStatusCode::isError, clientResponse ->
                         clientResponse.bodyToMono(String.class).flatMap(body -> {
-                            log.error("AsyncFlow API Error: {} - Response body: {}", 
+                            log.error("AsyncFlow API Error: {} - Response body: {}",
                                     clientResponse.statusCode(), body);
                             return Mono.error(new AsyncFlowException(
-                                    "AsyncFlow API Error: " + clientResponse.statusCode() + 
-                                    " body: " + body));
+                                    "AsyncFlow API Error: " + clientResponse.statusCode() +
+                                            " body: " + body));
                         })
                 )
                 .bodyToMono(AsyncFlowResponse.class)
