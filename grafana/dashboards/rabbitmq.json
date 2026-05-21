@@ -263,9 +263,18 @@
     { "id": 27, "type": "row", "title": "Applicatie Logs", "gridPos": { "x": 0, "y": 60, "w": 24, "h": 1 }, "collapsed": false },
 
     {
-      "id": 28, "type": "logs", "title": "Applicatie Logs",
+      "id": 28, "type": "logs", "title": "Errors & Warnings",
+      "description": "Alleen ERROR en WARN logs van de communicatiemodule.",
+      "gridPos": { "x": 0, "y": 61, "w": 24, "h": 20 },
+      "datasource": { "uid": "loki", "type": "loki" },
+      "options": { "dedupStrategy": "none", "enableLogDetails": true, "prettifyLogMessage": false, "showCommonLabels": false, "showLabels": false, "showTime": true, "sortOrder": "Descending", "wrapLogMessage": true },
+      "targets": [{ "expr": "{service_name=\"atx24-app\"} |~ \"ERROR|WARN\"", "legendFormat": "", "refId": "A" }]
+    },
+
+    {
+      "id": 29, "type": "logs", "title": "Alle Logs",
       "description": "Alle logs van de communicatiemodule via OpenTelemetry.",
-      "gridPos": { "x": 0, "y": 61, "w": 24, "h": 30 },
+      "gridPos": { "x": 0, "y": 81, "w": 24, "h": 20 },
       "datasource": { "uid": "loki", "type": "loki" },
       "options": { "dedupStrategy": "none", "enableLogDetails": true, "prettifyLogMessage": false, "showCommonLabels": false, "showLabels": false, "showTime": true, "sortOrder": "Descending", "wrapLogMessage": true },
       "targets": [{ "expr": "{service_name=\"atx24-app\"}", "legendFormat": "", "refId": "A" }]
