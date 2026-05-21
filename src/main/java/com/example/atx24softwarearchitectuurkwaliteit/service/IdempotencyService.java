@@ -36,33 +36,6 @@ public class IdempotencyService {
     }
 
     /**
-     * Validate HMAC-SHA256 signature from webhook
-     * @param payload Request body
-     * @param signature HMAC signature from header
-     * @param secret Webhook secret
-     * @return true if signature is valid
-     */
-    public boolean validateHmacSignature(String payload, String signature, String secret) {
-        try {
-            String computedSignature = computeHmac(payload, secret);
-            boolean isValid = constantTimeEquals(computedSignature, signature);
-            
-            if (!isValid) {
-                logger.warn("Invalid HMAC signature detected");
-                logger.warn("Received signature: {}", signature);
-                logger.warn("Computed signature: {}", computedSignature);
-                logger.warn("Payload length: {}", payload.length());
-                logger.warn("Payload (first 200 chars): {}", payload.length() > 200 ? payload.substring(0, 200) : payload);
-            }
-            
-            return isValid;
-        } catch (Exception e) {
-            logger.error("Error validating HMAC signature: {}", e.getMessage());
-            return false;
-        }
-    }
-
-    /**
      * Compute HMAC-SHA256
      */
     private String computeHmac(String data, String secret) throws Exception {
