@@ -1,10 +1,28 @@
 
 services:
-  #fake message providers
+  # Fake messaging providers (SwiftSend / LegacyLink / AsyncFlow / SecurePost)
   fakeMessageProvider:
     image: ghcr.io/avansict/in2.4-fakecomworld:main
     ports:
       - "1337:8080"
+
+  # Fake OpenMRS REST server — simuleert /ws/rest/v1/appointments voor pipeline-tests
+  fake-openmrs:
+    build:
+      context: ./fake-openmrs
+      dockerfile: Dockerfile
+    container_name: atx24-fake-openmrs
+    environment:
+      FAKE_OPENMRS_PORT: 8090
+      FAKE_APPOINTMENT_COUNT: ${FAKE_APPOINTMENT_COUNT:-3}
+      FAKE_APPOINTMENT_HOURS: ${FAKE_APPOINTMENT_HOURS:-2}
+      FAKE_PATIENT_NAME: ${FAKE_PATIENT_NAME:-Test Patient}
+      FAKE_APPOINTMENT_LOCATION: ${FAKE_APPOINTMENT_LOCATION:-Polikliniek Kamer 3B}
+      FAKE_APPOINTMENT_TYPE: ${FAKE_APPOINTMENT_TYPE:-Consultatie}
+      FAKE_APPOINTMENT_STATUS: ${FAKE_APPOINTMENT_STATUS:-Scheduled}
+      FAKE_APPOINTMENT_COMMENTS: ${FAKE_APPOINTMENT_COMMENTS:-Nuchter komen}
+    ports:
+      - "8090:8090"
   # PostgreSQL Database
   postgres:
     image: postgres:17-alpine
@@ -56,6 +74,8 @@ services:
         condition: service_healthy
       fakeMessageProvider:
         condition: service_started
+      fake-openmrs:
+        condition: service_started
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/atx24db
       SPRING_DATASOURCE_USERNAME: postgres
@@ -70,6 +90,13 @@ services:
       PROVIDERS_SECUREPOST_CLIENT_ID: securepost-client-id
       PROVIDERS_SECUREPOST_CLIENT_SECRET: securepost-secret-key
       PROVIDERS_ASYNCFLOW_API_KEY: ${PROVIDERS_ASYNCFLOW_API_KEY}
+      # Tenant configuratie — wijst naar de fake OpenMRS service
+      OPENMRS_TENANT_ID: ${OPENMRS_TENANT_ID:-test-ziekenhuis}
+      OPENMRS_ORGANIZATION_NAME: ${OPENMRS_ORGANIZATION_NAME:-Test Ziekenhuis}
+      OPENMRS_BASE_URL: http://fake-openmrs:8090
+      OPENMRS_USERNAME: ${OPENMRS_USERNAME:-admin}
+      OPENMRS_PASSWORD: ${OPENMRS_PASSWORD:-admin}
+      OPENMRS_NOTIFICATION_PROVIDER: ${OPENMRS_NOTIFICATION_PROVIDER:-SWIFTSEND}
     ports:
       - "8080:8080"
       - "9090:9090"     # Prometheus metrics (if configured)

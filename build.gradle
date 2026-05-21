@@ -42,6 +42,10 @@ dependencies {
 	// Metrics (Prometheus)
 	runtimeOnly 'io.micrometer:micrometer-registry-prometheus'
 
+	// HAPI FHIR R4 (intern FHIR-compliance zonder OpenMRS FHIR endpoint)
+	implementation 'ca.uhn.hapi.fhir:hapi-fhir-base:7.0.0'
+	implementation 'ca.uhn.hapi.fhir:hapi-fhir-structures-r4:7.0.0'
+
 	// Tests
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testImplementation 'org.springframework.amqp:spring-rabbit-test'
