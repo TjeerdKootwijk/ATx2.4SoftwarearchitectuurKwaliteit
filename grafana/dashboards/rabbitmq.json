@@ -81,7 +81,7 @@
           "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 100 }, { "color": "red", "value": 1000 }] }
         }
       },
-      "targets": [{ "expr": "sum(rabbitmq_queue_messages_ready)", "legendFormat": "Ready", "refId": "A" }]
+      "targets": [{ "expr": "sum(rabbitmq_queue_messages_ready{job=\"rabbitmq\"})", "legendFormat": "Ready", "refId": "A" }]
     },
     {
       "id": 6,
@@ -96,7 +96,7 @@
           "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 10 }, { "color": "red", "value": 100 }] }
         }
       },
-      "targets": [{ "expr": "sum(rabbitmq_queue_messages_unacked)", "legendFormat": "Unacked", "refId": "A" }]
+      "targets": [{ "expr": "sum(rabbitmq_queue_messages_unacked{job=\"rabbitmq\"})", "legendFormat": "Unacked", "refId": "A" }]
     },
     {
       "id": 7,
@@ -114,9 +114,9 @@
       },
       "options": { "legend": { "displayMode": "list", "placement": "bottom" } },
       "targets": [
-        { "expr": "sum(rabbitmq_queue_messages_ready)", "legendFormat": "Ready", "refId": "A" },
-        { "expr": "sum(rabbitmq_queue_messages_unacked)", "legendFormat": "Unacked", "refId": "B" },
-        { "expr": "sum(rabbitmq_queue_messages)", "legendFormat": "Total", "refId": "C" }
+        { "expr": "sum(rabbitmq_queue_messages_ready{job=\"rabbitmq\"})", "legendFormat": "Ready", "refId": "A" },
+        { "expr": "sum(rabbitmq_queue_messages_unacked{job=\"rabbitmq\"})", "legendFormat": "Unacked", "refId": "B" },
+        { "expr": "sum(rabbitmq_queue_messages{job=\"rabbitmq\"})", "legendFormat": "Total", "refId": "C" }
       ]
     },
     {
@@ -133,11 +133,11 @@
       },
       "options": { "legend": { "displayMode": "list", "placement": "bottom" } },
       "targets": [
-        { "expr": "sum(rate(rabbitmq_channel_messages_published_total[1m]))", "legendFormat": "Publish", "refId": "A" },
-        { "expr": "sum(rate(rabbitmq_channel_messages_delivered_ack_total[1m]))", "legendFormat": "Deliver (auto ack)", "refId": "B" },
-        { "expr": "sum(rate(rabbitmq_channel_messages_acknowledged_total[1m]))", "legendFormat": "Consumer ack", "refId": "C" },
-        { "expr": "sum(rate(rabbitmq_channel_messages_redelivered_total[1m]))", "legendFormat": "Redelivered", "refId": "D" },
-        { "expr": "sum(rate(rabbitmq_channel_messages_unroutable_dropped_total[1m]))", "legendFormat": "Unroutable (drop)", "refId": "E" }
+        { "expr": "sum(rate(rabbitmq_channel_messages_published_total{job=\"rabbitmq\"}[1m]))", "legendFormat": "Publish", "refId": "A" },
+        { "expr": "sum(rate(rabbitmq_channel_messages_delivered_ack_total{job=\"rabbitmq\"}[1m]))", "legendFormat": "Deliver (auto ack)", "refId": "B" },
+        { "expr": "sum(rate(rabbitmq_channel_messages_acknowledged_total{job=\"rabbitmq\"}[1m]))", "legendFormat": "Consumer ack", "refId": "C" },
+        { "expr": "sum(rate(rabbitmq_channel_messages_redelivered_total{job=\"rabbitmq\"}[1m]))", "legendFormat": "Redelivered", "refId": "D" },
+        { "expr": "sum(rate(rabbitmq_channel_messages_unroutable_dropped_total{job=\"rabbitmq\"}[1m]))", "legendFormat": "Unroutable (drop)", "refId": "E" }
       ]
     },
     {
@@ -151,8 +151,8 @@
       },
       "options": { "legend": { "displayMode": "list", "placement": "bottom" } },
       "targets": [
-        { "expr": "sum(rate(rabbitmq_connections_opened_total[1m]))", "legendFormat": "Created", "refId": "A" },
-        { "expr": "sum(rate(rabbitmq_connections_closed_total[1m]))", "legendFormat": "Closed", "refId": "B" }
+        { "expr": "sum(rate(rabbitmq_connections_opened_total{job=\"rabbitmq\"}[1m]))", "legendFormat": "Created", "refId": "A" },
+        { "expr": "sum(rate(rabbitmq_connections_closed_total{job=\"rabbitmq\"}[1m]))", "legendFormat": "Closed", "refId": "B" }
       ]
     },
     {
@@ -166,8 +166,8 @@
       },
       "options": { "legend": { "displayMode": "list", "placement": "bottom" } },
       "targets": [
-        { "expr": "sum(rate(rabbitmq_channels_opened_total[1m]))", "legendFormat": "Created", "refId": "A" },
-        { "expr": "sum(rate(rabbitmq_channels_closed_total[1m]))", "legendFormat": "Closed", "refId": "B" }
+        { "expr": "sum(rate(rabbitmq_channels_opened_total{job=\"rabbitmq\"}[1m]))", "legendFormat": "Created", "refId": "A" },
+        { "expr": "sum(rate(rabbitmq_channels_closed_total{job=\"rabbitmq\"}[1m]))", "legendFormat": "Closed", "refId": "B" }
       ]
     },
     {
@@ -181,9 +181,9 @@
       },
       "options": { "legend": { "displayMode": "list", "placement": "bottom" } },
       "targets": [
-        { "expr": "sum(rate(rabbitmq_queue_declarations_total[1m]))", "legendFormat": "Declared", "refId": "A" },
-        { "expr": "sum(rate(rabbitmq_queues_created_total[1m]))", "legendFormat": "Created", "refId": "B" },
-        { "expr": "sum(rate(rabbitmq_queues_deleted_total[1m]))", "legendFormat": "Deleted", "refId": "C" }
+        { "expr": "sum(rate(rabbitmq_queue_declarations_total{job=\"rabbitmq\"}[1m]))", "legendFormat": "Declared", "refId": "A" },
+        { "expr": "sum(rate(rabbitmq_queues_created_total{job=\"rabbitmq\"}[1m]))", "legendFormat": "Created", "refId": "B" },
+        { "expr": "sum(rate(rabbitmq_queues_deleted_total{job=\"rabbitmq\"}[1m]))", "legendFormat": "Deleted", "refId": "C" }
       ]
     },
     {
