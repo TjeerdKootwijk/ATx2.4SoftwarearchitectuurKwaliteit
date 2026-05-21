@@ -21,7 +21,7 @@
           "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] }
         }
       },
-      "targets": [{ "expr": "rabbitmq_connections", "legendFormat": "Connections", "refId": "A" }]
+      "targets": [{ "expr": "rabbitmq_connections{job=\"rabbitmq\"}", "legendFormat": "Connections", "refId": "A" }]
     },
     {
       "id": 2,
@@ -36,7 +36,7 @@
           "thresholds": { "mode": "absolute", "steps": [{ "color": "blue", "value": null }] }
         }
       },
-      "targets": [{ "expr": "rabbitmq_channels", "legendFormat": "Channels", "refId": "A" }]
+      "targets": [{ "expr": "rabbitmq_channels{job=\"rabbitmq\"}", "legendFormat": "Channels", "refId": "A" }]
     },
     {
       "id": 3,
@@ -51,7 +51,7 @@
           "thresholds": { "mode": "absolute", "steps": [{ "color": "purple", "value": null }] }
         }
       },
-      "targets": [{ "expr": "rabbitmq_queues", "legendFormat": "Queues", "refId": "A" }]
+      "targets": [{ "expr": "rabbitmq_queues{job=\"rabbitmq\"}", "legendFormat": "Queues", "refId": "A" }]
     },
     {
       "id": 4,
@@ -66,7 +66,7 @@
           "thresholds": { "mode": "absolute", "steps": [{ "color": "orange", "value": null }] }
         }
       },
-      "targets": [{ "expr": "rabbitmq_consumers", "legendFormat": "Consumers", "refId": "A" }]
+      "targets": [{ "expr": "rabbitmq_consumers{job=\"rabbitmq\"}", "legendFormat": "Consumers", "refId": "A" }]
     },
     {
       "id": 5,
@@ -197,7 +197,7 @@
       "id": 13,
       "type": "stat",
       "title": "Mislukte Berichten (DLQ)",
-      "description": "Berichten in de dead-letter queue — dit zijn notificaties die na alle retries niet verstuurd konden worden.",
+      "description": "Berichten in de dead-letter queue — notificaties die na alle retries niet verstuurd konden worden.",
       "gridPos": { "x": 0, "y": 27, "w": 8, "h": 4 },
       "datasource": { "uid": "prometheus-rabbitmq", "type": "prometheus" },
       "options": { "colorMode": "background", "graphMode": "none", "textMode": "auto" },
@@ -224,38 +224,9 @@
     {
       "id": 14,
       "type": "stat",
-      "title": "HTTP Fouten (laatste 5 min)",
-      "description": "Aantal HTTP 5xx-foutresponsen van de applicatie in de afgelopen 5 minuten.",
-      "gridPos": { "x": 8, "y": 27, "w": 8, "h": 4 },
-      "datasource": { "uid": "prometheus-rabbitmq", "type": "prometheus" },
-      "options": { "colorMode": "background", "graphMode": "none", "textMode": "auto" },
-      "fieldConfig": {
-        "defaults": {
-          "color": { "mode": "thresholds" },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              { "color": "green", "value": null },
-              { "color": "yellow", "value": 1 },
-              { "color": "red", "value": 5 }
-            ]
-          }
-        }
-      },
-      "targets": [
-        {
-          "expr": "sum(increase(http_server_requests_seconds_count{job=\"spring-app\",status=~\"5..\"}[5m])) or vector(0)",
-          "legendFormat": "5xx Fouten",
-          "refId": "A"
-        }
-      ]
-    },
-    {
-      "id": 15,
-      "type": "stat",
       "title": "Berichten/sec (throughput)",
       "description": "Huidig aantal gepubliceerde berichten per seconde naar RabbitMQ.",
-      "gridPos": { "x": 16, "y": 27, "w": 8, "h": 4 },
+      "gridPos": { "x": 8, "y": 27, "w": 8, "h": 4 },
       "datasource": { "uid": "prometheus-rabbitmq", "type": "prometheus" },
       "options": { "colorMode": "background", "graphMode": "area", "textMode": "auto" },
       "fieldConfig": {
@@ -277,11 +248,11 @@
       ]
     },
     {
-      "id": 16,
+      "id": 15,
       "type": "timeseries",
       "title": "Verstuurd vs Mislukt",
-      "description": "Vergelijking tussen succesvol afgeleverde berichten (consumer ack) en berichten in de dead-letter queue.",
-      "gridPos": { "x": 0, "y": 31, "w": 12, "h": 8 },
+      "description": "Vergelijking tussen succesvol afgeleverde berichten en berichten in de dead-letter queue.",
+      "gridPos": { "x": 0, "y": 31, "w": 24, "h": 8 },
       "datasource": { "uid": "prometheus-rabbitmq", "type": "prometheus" },
       "fieldConfig": {
         "defaults": { "custom": { "lineWidth": 2, "fillOpacity": 10 } },
@@ -307,52 +278,6 @@
           "expr": "sum(rabbitmq_queue_messages{queue=\"notification.dead-letter.queue\"}) or vector(0)",
           "legendFormat": "Mislukt (DLQ)",
           "refId": "B"
-        }
-      ]
-    },
-    {
-      "id": 17,
-      "type": "timeseries",
-      "title": "HTTP Foutpercentage",
-      "description": "Foutpercentage van HTTP-verzoeken aan de applicatie, uitgesplitst per statuscode-klasse.",
-      "gridPos": { "x": 12, "y": 31, "w": 12, "h": 8 },
-      "datasource": { "uid": "prometheus-rabbitmq", "type": "prometheus" },
-      "fieldConfig": {
-        "defaults": {
-          "unit": "reqps",
-          "custom": { "lineWidth": 2, "fillOpacity": 10 }
-        },
-        "overrides": [
-          {
-            "matcher": { "id": "byName", "options": "5xx Fouten/s" },
-            "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "red" } }]
-          },
-          {
-            "matcher": { "id": "byName", "options": "4xx Fouten/s" },
-            "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "orange" } }]
-          },
-          {
-            "matcher": { "id": "byName", "options": "2xx Succesvol/s" },
-            "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "green" } }]
-          }
-        ]
-      },
-      "options": { "legend": { "displayMode": "list", "placement": "bottom" } },
-      "targets": [
-        {
-          "expr": "sum(rate(http_server_requests_seconds_count{job=\"spring-app\",status=~\"5..\"}[1m])) or vector(0)",
-          "legendFormat": "5xx Fouten/s",
-          "refId": "A"
-        },
-        {
-          "expr": "sum(rate(http_server_requests_seconds_count{job=\"spring-app\",status=~\"4..\"}[1m])) or vector(0)",
-          "legendFormat": "4xx Fouten/s",
-          "refId": "B"
-        },
-        {
-          "expr": "sum(rate(http_server_requests_seconds_count{job=\"spring-app\",status=~\"2..\"}[1m])) or vector(0)",
-          "legendFormat": "2xx Succesvol/s",
-          "refId": "C"
         }
       ]
     }
