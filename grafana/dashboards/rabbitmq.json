@@ -1,0 +1,284 @@
+{
+  "uid": "rabbitmq-overview",
+  "title": "RabbitMQ Overview",
+  "tags": ["rabbitmq"],
+  "timezone": "browser",
+  "schemaVersion": 38,
+  "version": 1,
+  "refresh": "5s",
+  "time": { "from": "now-1h", "to": "now" },
+  "panels": [
+
+    { "id": 1, "type": "row", "title": "Transactie Overzicht", "gridPos": { "x": 0, "y": 0, "w": 24, "h": 1 }, "collapsed": false },
+
+    {
+      "id": 2, "type": "stat", "title": "Geslaagde Transacties",
+      "description": "Totaal aantal notificaties dat succesvol verstuurd is door de consumer.",
+      "gridPos": { "x": 0, "y": 1, "w": 8, "h": 6 },
+      "datasource": { "uid": "prometheus-rabbitmq", "type": "prometheus" },
+      "options": { "colorMode": "background", "graphMode": "none", "textMode": "auto", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "fieldConfig": { "defaults": { "noValue": "0", "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] } } },
+      "targets": [{ "expr": "sum(notifications_sent_total{job=\"spring-app\", status=\"success\"})", "legendFormat": "Geslaagd", "refId": "A" }]
+    },
+
+    {
+      "id": 3, "type": "stat", "title": "Mislukte Transacties",
+      "description": "Totaal aantal notificaties dat gefaald is door de consumer.",
+      "gridPos": { "x": 8, "y": 1, "w": 8, "h": 6 },
+      "datasource": { "uid": "prometheus-rabbitmq", "type": "prometheus" },
+      "options": { "colorMode": "background", "graphMode": "none", "textMode": "auto" },
+      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "red", "value": 1 }] } } },
+      "targets": [{ "expr": "sum(notifications_sent_total{job=\"spring-app\", status=\"failed\"}) or vector(0)", "legendFormat": "Mislukt", "refId": "A" }]
+    },
+
+    {
+      "id": 4, "type": "stat", "title": "Totaal Geprobeerd",
+      "description": "Totaal aantal gepubliceerde berichten (geslaagd + mislukt).",
+      "gridPos": { "x": 16, "y": 1, "w": 8, "h": 6 },
+      "datasource": { "uid": "prometheus-rabbitmq", "type": "prometheus" },
+      "options": { "colorMode": "background", "graphMode": "none", "textMode": "auto" },
+      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "color": "blue", "value": null }] } } },
+      "targets": [{ "expr": "sum(notifications_sent_total{job=\"spring-app\"})", "legendFormat": "Totaal", "refId": "A" }]
+    },
+
+    { "id": 5, "type": "row", "title": "Notificatie Status & Fouten", "gridPos": { "x": 0, "y": 7, "w": 24, "h": 1 }, "collapsed": false },
+
+    {
+      "id": 8, "type": "timeseries", "title": "Verstuurd vs Mislukt",
+      "description": "Succesvol afgeleverde berichten vs berichten in de dead-letter queue.",
+      "gridPos": { "x": 0, "y": 8, "w": 24, "h": 8 },
+      "datasource": { "uid": "prometheus-rabbitmq", "type": "prometheus" },
+      "fieldConfig": {
+        "defaults": { "custom": { "lineWidth": 2, "fillOpacity": 10 } },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "Verstuurd (ack/s)" }, "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "green" } }] },
+          { "matcher": { "id": "byName", "options": "Mislukt (DLQ)" }, "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "red" } }] }
+        ]
+      },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" } },
+      "targets": [
+        { "expr": "sum(rate(rabbitmq_channel_messages_published_total{job=\"rabbitmq\"}[1m])) - sum(rate(rabbitmq_channel_messages_redelivered_total{job=\"rabbitmq\"}[1m]))", "legendFormat": "Verstuurd (ack/s)", "refId": "A" },
+        { "expr": "sum(rabbitmq_queue_messages{queue=\"notification.dead-letter.queue\"}) or vector(0)", "legendFormat": "Mislukt (DLQ)", "refId": "B" }
+      ]
+    },
+
+    { "id": 9, "type": "row", "title": "RabbitMQ Details", "gridPos": { "x": 0, "y": 20, "w": 24, "h": 1 }, "collapsed": false },
+
+    {
+      "id": 10, "type": "stat", "title": "Connections",
+      "gridPos": { "x": 0, "y": 21, "w": 4, "h": 4 },
+      "datasource": { "uid": "prometheus-rabbitmq", "type": "prometheus" },
+      "options": { "colorMode": "background", "graphMode": "none", "textMode": "auto" },
+      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] } } },
+      "targets": [{ "expr": "rabbitmq_connections{job=\"rabbitmq\"}", "legendFormat": "Connections", "refId": "A" }]
+    },
+
+    {
+      "id": 11, "type": "stat", "title": "Channels",
+      "gridPos": { "x": 4, "y": 21, "w": 4, "h": 4 },
+      "datasource": { "uid": "prometheus-rabbitmq", "type": "prometheus" },
+      "options": { "colorMode": "background", "graphMode": "none", "textMode": "auto" },
+      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "color": "blue", "value": null }] } } },
+      "targets": [{ "expr": "rabbitmq_channels{job=\"rabbitmq\"}", "legendFormat": "Channels", "refId": "A" }]
+    },
+
+    {
+      "id": 12, "type": "stat", "title": "Queues",
+      "gridPos": { "x": 8, "y": 21, "w": 4, "h": 4 },
+      "datasource": { "uid": "prometheus-rabbitmq", "type": "prometheus" },
+      "options": { "colorMode": "background", "graphMode": "none", "textMode": "auto" },
+      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "color": "purple", "value": null }] } } },
+      "targets": [{ "expr": "rabbitmq_queues{job=\"rabbitmq\"}", "legendFormat": "Queues", "refId": "A" }]
+    },
+
+    {
+      "id": 13, "type": "stat", "title": "Consumers",
+      "gridPos": { "x": 12, "y": 21, "w": 4, "h": 4 },
+      "datasource": { "uid": "prometheus-rabbitmq", "type": "prometheus" },
+      "options": { "colorMode": "background", "graphMode": "none", "textMode": "auto" },
+      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "color": "orange", "value": null }] } } },
+      "targets": [{ "expr": "rabbitmq_consumers{job=\"rabbitmq\"}", "legendFormat": "Consumers", "refId": "A" }]
+    },
+
+    {
+      "id": 14, "type": "stat", "title": "Messages Ready",
+      "gridPos": { "x": 16, "y": 21, "w": 4, "h": 4 },
+      "datasource": { "uid": "prometheus-rabbitmq", "type": "prometheus" },
+      "options": { "colorMode": "background", "graphMode": "none", "textMode": "auto" },
+      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 100 }, { "color": "red", "value": 1000 }] } } },
+      "targets": [{ "expr": "sum(rabbitmq_queue_messages_ready{job=\"rabbitmq\"})", "legendFormat": "Ready", "refId": "A" }]
+    },
+
+    {
+      "id": 15, "type": "stat", "title": "Messages Unacked",
+      "gridPos": { "x": 20, "y": 21, "w": 4, "h": 4 },
+      "datasource": { "uid": "prometheus-rabbitmq", "type": "prometheus" },
+      "options": { "colorMode": "background", "graphMode": "none", "textMode": "auto" },
+      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 10 }, { "color": "red", "value": 100 }] } } },
+      "targets": [{ "expr": "sum(rabbitmq_queue_messages_unacked{job=\"rabbitmq\"})", "legendFormat": "Unacked", "refId": "A" }]
+    },
+
+    {
+      "id": 16, "type": "timeseries", "title": "Queued Messages",
+      "gridPos": { "x": 0, "y": 25, "w": 24, "h": 8 },
+      "datasource": { "uid": "prometheus-rabbitmq", "type": "prometheus" },
+      "fieldConfig": {
+        "defaults": { "custom": { "lineWidth": 2, "fillOpacity": 10 } },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "Ready" }, "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "green" } }] },
+          { "matcher": { "id": "byName", "options": "Unacked" }, "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "yellow" } }] },
+          { "matcher": { "id": "byName", "options": "Total" }, "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "red" } }] }
+        ]
+      },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" } },
+      "targets": [
+        { "expr": "sum(rabbitmq_queue_messages_ready{job=\"rabbitmq\"})", "legendFormat": "Ready", "refId": "A" },
+        { "expr": "sum(rabbitmq_queue_messages_unacked{job=\"rabbitmq\"})", "legendFormat": "Unacked", "refId": "B" },
+        { "expr": "sum(rabbitmq_queue_messages{job=\"rabbitmq\"})", "legendFormat": "Total", "refId": "C" }
+      ]
+    },
+
+    {
+      "id": 17, "type": "timeseries", "title": "Message Rates",
+      "gridPos": { "x": 0, "y": 33, "w": 24, "h": 8 },
+      "datasource": { "uid": "prometheus-rabbitmq", "type": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "reqps", "custom": { "lineWidth": 2, "fillOpacity": 5 } } },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" } },
+      "targets": [
+        { "expr": "sum(rate(rabbitmq_channel_messages_published_total{job=\"rabbitmq\"}[1m]))", "legendFormat": "Publish", "refId": "A" },
+        { "expr": "sum(rate(rabbitmq_channel_messages_delivered_ack_total{job=\"rabbitmq\"}[1m]))", "legendFormat": "Deliver (auto ack)", "refId": "B" },
+        { "expr": "sum(rate(rabbitmq_channel_messages_acknowledged_total{job=\"rabbitmq\"}[1m]))", "legendFormat": "Consumer ack", "refId": "C" },
+        { "expr": "sum(rate(rabbitmq_channel_messages_redelivered_total{job=\"rabbitmq\"}[1m]))", "legendFormat": "Redelivered", "refId": "D" },
+        { "expr": "sum(rate(rabbitmq_channel_messages_unroutable_dropped_total{job=\"rabbitmq\"}[1m]))", "legendFormat": "Unroutable (drop)", "refId": "E" }
+      ]
+    },
+
+    {
+      "id": 18, "type": "timeseries", "title": "Connection Operations",
+      "gridPos": { "x": 0, "y": 41, "w": 8, "h": 6 },
+      "datasource": { "uid": "prometheus-rabbitmq", "type": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "reqps", "custom": { "lineWidth": 2, "fillOpacity": 5 } } },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" } },
+      "targets": [
+        { "expr": "sum(rate(rabbitmq_connections_opened_total{job=\"rabbitmq\"}[1m]))", "legendFormat": "Created", "refId": "A" },
+        { "expr": "sum(rate(rabbitmq_connections_closed_total{job=\"rabbitmq\"}[1m]))", "legendFormat": "Closed", "refId": "B" }
+      ]
+    },
+
+    {
+      "id": 19, "type": "timeseries", "title": "Channel Operations",
+      "gridPos": { "x": 8, "y": 41, "w": 8, "h": 6 },
+      "datasource": { "uid": "prometheus-rabbitmq", "type": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "reqps", "custom": { "lineWidth": 2, "fillOpacity": 5 } } },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" } },
+      "targets": [
+        { "expr": "sum(rate(rabbitmq_channels_opened_total{job=\"rabbitmq\"}[1m]))", "legendFormat": "Created", "refId": "A" },
+        { "expr": "sum(rate(rabbitmq_channels_closed_total{job=\"rabbitmq\"}[1m]))", "legendFormat": "Closed", "refId": "B" }
+      ]
+    },
+
+    {
+      "id": 20, "type": "timeseries", "title": "Queue Operations",
+      "gridPos": { "x": 16, "y": 41, "w": 8, "h": 6 },
+      "datasource": { "uid": "prometheus-rabbitmq", "type": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "reqps", "custom": { "lineWidth": 2, "fillOpacity": 5 } } },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" } },
+      "targets": [
+        { "expr": "sum(rate(rabbitmq_queue_declarations_total{job=\"rabbitmq\"}[1m]))", "legendFormat": "Declared", "refId": "A" },
+        { "expr": "sum(rate(rabbitmq_queues_created_total{job=\"rabbitmq\"}[1m]))", "legendFormat": "Created", "refId": "B" },
+        { "expr": "sum(rate(rabbitmq_queues_deleted_total{job=\"rabbitmq\"}[1m]))", "legendFormat": "Deleted", "refId": "C" }
+      ]
+    },
+
+    { "id": 21, "type": "row", "title": "Applicatie Gezondheid & Foutmeldingen", "gridPos": { "x": 0, "y": 47, "w": 24, "h": 1 }, "collapsed": false },
+
+    {
+      "id": 22, "type": "stat", "title": "HTTP Fouten (laatste uur)",
+      "description": "Aantal HTTP 4xx/5xx-foutresponsen in het afgelopen uur.",
+      "gridPos": { "x": 0, "y": 48, "w": 8, "h": 4 },
+      "datasource": { "uid": "prometheus-rabbitmq", "type": "prometheus" },
+      "options": { "colorMode": "background", "graphMode": "none", "textMode": "auto" },
+      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 1 }, { "color": "red", "value": 5 }] } } },
+      "targets": [{ "expr": "round(sum(increase(http_server_requests_seconds_count{job=\"spring-app\", status=~\"[45]..\"}[1h])) or vector(0))", "legendFormat": "4xx/5xx Fouten", "refId": "A" }]
+    },
+
+    {
+      "id": 23, "type": "stat", "title": "JVM Geheugen",
+      "description": "Percentage van het JVM heap-geheugen in gebruik.",
+      "gridPos": { "x": 8, "y": 48, "w": 8, "h": 4 },
+      "datasource": { "uid": "prometheus-rabbitmq", "type": "prometheus" },
+      "options": { "colorMode": "background", "graphMode": "area", "textMode": "auto" },
+      "fieldConfig": { "defaults": { "unit": "percent", "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 70 }, { "color": "red", "value": 90 }] } } },
+      "targets": [{ "expr": "sum(jvm_memory_used_bytes{job=\"spring-app\", area=\"heap\"}) / sum(jvm_memory_max_bytes{job=\"spring-app\", area=\"heap\"}) * 100", "legendFormat": "Heap %", "refId": "A" }]
+    },
+
+    {
+      "id": 24, "type": "stat", "title": "CPU Gebruik",
+      "description": "CPU-gebruik van het applicatieproces.",
+      "gridPos": { "x": 16, "y": 48, "w": 8, "h": 4 },
+      "datasource": { "uid": "prometheus-rabbitmq", "type": "prometheus" },
+      "options": { "colorMode": "background", "graphMode": "area", "textMode": "auto" },
+      "fieldConfig": { "defaults": { "unit": "percentunit", "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 0.7 }, { "color": "red", "value": 0.9 }] } } },
+      "targets": [{ "expr": "process_cpu_usage{job=\"spring-app\"}", "legendFormat": "CPU %", "refId": "A" }]
+    },
+
+    {
+      "id": 25, "type": "timeseries", "title": "HTTP Foutpercentage",
+      "gridPos": { "x": 0, "y": 52, "w": 12, "h": 8 },
+      "datasource": { "uid": "prometheus-rabbitmq", "type": "prometheus" },
+      "fieldConfig": {
+        "defaults": { "unit": "reqps", "custom": { "lineWidth": 2, "fillOpacity": 10 } },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "5xx Fouten/s" }, "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "red" } }] },
+          { "matcher": { "id": "byName", "options": "4xx Fouten/s" }, "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "orange" } }] },
+          { "matcher": { "id": "byName", "options": "2xx Succesvol/s" }, "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "green" } }] }
+        ]
+      },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" } },
+      "targets": [
+        { "expr": "sum(rate(http_server_requests_seconds_count{job=\"spring-app\", status=~\"5..\"}[1m])) or vector(0)", "legendFormat": "5xx Fouten/s", "refId": "A" },
+        { "expr": "sum(rate(http_server_requests_seconds_count{job=\"spring-app\", status=~\"4..\"}[1m])) or vector(0)", "legendFormat": "4xx Fouten/s", "refId": "B" },
+        { "expr": "sum(rate(http_server_requests_seconds_count{job=\"spring-app\", status=~\"2..\"}[1m])) or vector(0)", "legendFormat": "2xx Succesvol/s", "refId": "C" }
+      ]
+    },
+
+    {
+      "id": 26, "type": "timeseries", "title": "JVM Geheugen Over Tijd",
+      "gridPos": { "x": 12, "y": 52, "w": 12, "h": 8 },
+      "datasource": { "uid": "prometheus-rabbitmq", "type": "prometheus" },
+      "fieldConfig": {
+        "defaults": { "unit": "bytes", "custom": { "lineWidth": 2, "fillOpacity": 10 } },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "Gebruikt" }, "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "blue" } }] },
+          { "matcher": { "id": "byName", "options": "Maximum" }, "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "red" } }] }
+        ]
+      },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" } },
+      "targets": [
+        { "expr": "sum(jvm_memory_used_bytes{job=\"spring-app\", area=\"heap\"})", "legendFormat": "Gebruikt", "refId": "A" },
+        { "expr": "sum(jvm_memory_max_bytes{job=\"spring-app\", area=\"heap\"})", "legendFormat": "Maximum", "refId": "B" }
+      ]
+    },
+
+    { "id": 27, "type": "row", "title": "Applicatie Logs", "gridPos": { "x": 0, "y": 60, "w": 24, "h": 1 }, "collapsed": false },
+
+    {
+      "id": 28, "type": "logs", "title": "Errors & Warnings",
+      "description": "Alleen ERROR en WARN logs van de communicatiemodule.",
+      "gridPos": { "x": 0, "y": 61, "w": 24, "h": 20 },
+      "datasource": { "uid": "loki", "type": "loki" },
+      "options": { "dedupStrategy": "none", "enableLogDetails": true, "prettifyLogMessage": false, "showCommonLabels": false, "showLabels": false, "showTime": true, "sortOrder": "Descending", "wrapLogMessage": true },
+      "targets": [{ "expr": "{service_name=\"atx24-app\"} |~ \"(?i)error|warn\"", "legendFormat": "", "refId": "A" }]
+    },
+
+    {
+      "id": 29, "type": "logs", "title": "Info & Debug Logs",
+      "description": "Alleen INFO en DEBUG logs van de communicatiemodule via OpenTelemetry.",
+      "gridPos": { "x": 0, "y": 81, "w": 24, "h": 20 },
+      "datasource": { "uid": "loki", "type": "loki" },
+      "options": { "dedupStrategy": "none", "enableLogDetails": true, "prettifyLogMessage": false, "showCommonLabels": false, "showLabels": false, "showTime": true, "sortOrder": "Descending", "wrapLogMessage": true },
+      "targets": [{ "expr": "{service_name=\"atx24-app\"} !~ \"(?i)error|warn\"", "legendFormat": "", "refId": "A" }]
+    }
+
+  ]
+}

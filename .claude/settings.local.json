@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(curl -s http://admin:admin@localhost:3000/api/search?query=RabbitMQ)"
+    ]
+  }
+}
