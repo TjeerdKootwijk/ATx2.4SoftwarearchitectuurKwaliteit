@@ -33,21 +33,21 @@ public class RabbitMqAppointmentEventPublisher implements AppointmentEventPublis
 
     @Override
     public void publish(AppointmentChangedEvent event) {
-        if (idempotencyService.isEventProcessed(event.getEventId())) {
-            log.debug("Skipping duplicate event: {}", event.getEventId());
-            return;
-        }
-
-        idempotencyService.markEventAsProcessed(event.getEventId());
-        rabbitTemplate.convertAndSend(APPOINTMENT_EXCHANGE, APPOINTMENT_ROUTING_KEY, event);
-
-        log.info("------------------------------------------------");
-        log.info("[STAP 1✓] AppointmentChangedEvent gepubliceerd naar RabbitMQ");
-        log.info("  Event ID    : {}", event.getEventId());
-        log.info("  Tenant      : {}", event.getTenantId());
-        log.info("  Afspraak ID : {}", event.getAppointmentUuid());
-        log.info("  Patiënt     : {}", event.getPatientName());
-        log.info("  Tijd        : {}", event.getAppointmentDateTime());
-        log.info("------------------------------------------------");
+//        if (idempotencyService.isEventProcessed(event.getEventId())) {
+//            log.debug("Skipping duplicate event: {}", event.getEventId());
+//            return;
+//        }
+//
+//        idempotencyService.markEventAsProcessed(event.getEventId());
+//        rabbitTemplate.convertAndSend(APPOINTMENT_EXCHANGE, APPOINTMENT_ROUTING_KEY, event);
+//
+//        log.info("------------------------------------------------");
+//        log.info("[STAP 1✓] AppointmentChangedEvent gepubliceerd naar RabbitMQ");
+//        log.info("  Event ID    : {}", event.getEventId());
+//        log.info("  Tenant      : {}", event.getTenantId());
+//        log.info("  Afspraak ID : {}", event.getAppointmentUuid());
+//        log.info("  Patiënt     : {}", event.getPatientName());
+//        log.info("  Tijd        : {}", event.getAppointmentDateTime());
+//        log.info("------------------------------------------------");
     }
 }
