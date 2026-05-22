@@ -77,6 +77,7 @@ services:
       fakeMessageProvider:
         condition: service_started
       lgtm:
+        condition: service_started
       fake-openmrs:
         condition: service_started
     environment:
