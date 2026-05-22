@@ -1,116 +1,116 @@
 package com.example.atx24softwarearchitectuurkwaliteit.service;
 
+import com.example.atx24softwarearchitectuurkwaliteit.fhir.*;
+import com.example.atx24softwarearchitectuurkwaliteit.model.AppointmentChangedEvent;
 import com.example.atx24softwarearchitectuurkwaliteit.model.TenantConfiguration;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.*;
-import org.springframework.scheduling.annotation.Scheduled;
-import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
+import com.fasterxml.jackson.databind.JsonNode;
+import org.hl7.fhir.r4.model.Appointment;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.util.Base64;
-import java.util.Collection;
 
+/**
+ * SRP: puur een orkestrator — coördineert de stappen maar doet zelf geen HTTP-calls,
+ *      mapping, validatie of publicatie.
+ *
+ * DIP: hangt af van interfaces (AppointmentFetcher, AppointmentMapper, AppointmentEventConverter,
+ *      AppointmentValidator, AppointmentEventPublisher), niet van concrete klassen.
+ *
+ * OCP: nieuwe fetch-, map- of validatie-strategieën kunnen worden ingeplugd
+ *      zonder deze klasse aan te passen.
+ */
 @Service
 public class PollingJob {
 
-    private static final Logger logger = LoggerFactory.getLogger(PollingJob.class);
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private static final Logger log = LoggerFactory.getLogger(PollingJob.class);
 
-    @Autowired
-    private TenantService tenantService;
+    private final TenantService tenantService;
+    private final AppointmentFetcher fetcher;
+    private final AppointmentMapper mapper;
+    private final AppointmentEventConverter converter;
+    private final AppointmentValidator validator;
+    private final AppointmentEventPublisher publisher;
 
-    @Autowired
-    private RestTemplate restTemplate;
+    public PollingJob(TenantService tenantService,
+                      AppointmentFetcher fetcher,
+                      AppointmentMapper mapper,
+                      AppointmentEventConverter converter,
+                      AppointmentValidator validator,
+                      AppointmentEventPublisher publisher) {
+        this.tenantService = tenantService;
+        this.fetcher = fetcher;
+        this.mapper = mapper;
+        this.converter = converter;
+        this.validator = validator;
+        this.publisher = publisher;
+    }
 
     @Scheduled(fixedDelay = 300000, initialDelay = 10000)
     public void pollOpenMrsAppointments() {
-        logger.info("=== Starting appointment polling job ===");
+        log.info("=== Starting appointment polling job ===");
 
-        Collection<TenantConfiguration> activeTenants = tenantService.getAllActiveTenants();
-        logger.info("Aantal actieve tenants: {}", activeTenants.size());
-
-        for (TenantConfiguration tenant : activeTenants) {
-            pollTenantAppointments(tenant);
+        for (TenantConfiguration tenant : tenantService.getAllActiveTenants()) {
+            try {
+                processTenant(tenant);
+            } catch (Exception e) {
+                log.error("Unexpected error processing tenant {}: {}", tenant.getTenantId(), e.getMessage(), e);
+            }
         }
 
-        logger.info("=== Completed appointment polling job ===");
+        log.info("=== Completed appointment polling job ===");
     }
 
-    private void pollTenantAppointments(TenantConfiguration tenant) {
+    private void processTenant(TenantConfiguration tenant) {
         String tenantId = tenant.getTenantId();
+        LocalDateTime now = LocalDateTime.now();
+        int published = 0;
 
-        try {
-            String credentials = tenant.getOpenMrsUsername() + ":" + tenant.getOpenMrsPassword();
-            String encoded = Base64.getEncoder().encodeToString(credentials.getBytes());
+        for (JsonNode node : fetcher.fetchAppointments(tenant)) {
+            try {
+                if (!isWithinNotificationWindow(node, now)) continue;
 
-            String appointmentsUrl = tenant.getOpenMrsBaseUrl() + "/ws/rest/v1/appointments?v=full";
+                // Stap 1: map OpenMRS JSON → FHIR R4 Appointment (intern, NFR 6 — berichttransformatie)
+                Appointment fhirAppointment = mapper.map(node);
 
-            logger.info("Polling tenant {} → URL: {}", tenantId, appointmentsUrl);
+                // Stap 2: valideer FHIR R4 object (NFR 6 — berichtontvangst en validatie + ACK)
+                ValidationResult validationResult = validator.validate(fhirAppointment);
+                if (!validationResult.isValid()) {
+                    log.warn("Tenant {} — invalid FHIR appointment skipped: {}", tenantId, validationResult.getErrors());
+                    continue;
+                }
 
-            HttpHeaders headers = new HttpHeaders();
-            headers.set("Authorization", "Basic " + encoded);
-            headers.set("Accept", "application/json");
+                // Stap 3: converteer FHIR Appointment → intern event
+                AppointmentChangedEvent event = converter.convert(fhirAppointment, tenantId);
 
-            ResponseEntity<String> response = restTemplate.exchange(
-                    appointmentsUrl, HttpMethod.GET, new HttpEntity<>(headers), String.class);
+                // Stap 4: publiceer naar RabbitMQ (NFR 6 — queueing)
+                publisher.publish(event);
+                published++;
 
-            logger.info("Status tenant {}: {}", tenantId, response.getStatusCode());
-
-            if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
-                processAppointmentsJson(response.getBody(), tenantId);
+            } catch (Exception e) {
+                log.error("Error processing appointment for tenant {}: {}", tenantId, e.getMessage(), e);
             }
-
-        } catch (Exception e) {
-            logger.error("Fout bij tenant {}: {}", tenantId, e.getMessage(), e);
         }
+
+        log.info("Tenant {} → {} appointments published to queue", tenantId, published);
     }
 
-    private void processAppointmentsJson(String jsonBody, String tenantId) {
-        try {
-            JsonNode root = objectMapper.readTree(jsonBody);
-            JsonNode appointments = root.isArray() ? root : root.path("results");
+    /**
+     * Filter: alleen afspraken die nog niet begonnen zijn en binnen 7 dagen plaatsvinden.
+     * Afspraken die al zijn aangevangen krijgen geen notificatie (functionele eis 1).
+     */
+    private boolean isWithinNotificationWindow(JsonNode node, LocalDateTime now) {
+        long startMillis = node.path("startDateTime").asLong(0);
+        if (startMillis == 0) return false;
 
-            logger.info("Tenant {} → Totaal {} afspraken opgehaald uit OpenMRS", tenantId, appointments.size());
+        LocalDateTime appointmentTime = Instant.ofEpochMilli(startMillis)
+                .atZone(ZoneId.systemDefault())
+                .toLocalDateTime();
 
-            int relevanteCount = 0;
-            LocalDateTime now = LocalDateTime.now();
-
-            for (JsonNode app : appointments) {
-                long startMillis = app.path("startDateTime").asLong(0);
-                if (startMillis == 0) continue;
-
-                LocalDateTime appointmentTime = Instant.ofEpochMilli(startMillis)
-                        .atZone(ZoneId.systemDefault())
-                        .toLocalDateTime();
-
-                // Filter: Alleen afspraken van nu tot max 7 dagen in de toekomst
-                if (appointmentTime.isAfter(now.minusHours(2)) && appointmentTime.isBefore(now.plusDays(7))) {
-                    relevanteCount++;
-
-                    String uuid = app.path("uuid").asText();
-                    String patientName = app.path("patient").path("name").asText("Onbekend");
-                    String status = app.path("status").asText("N/A");
-
-                    String formattedTime = appointmentTime.toString();
-
-                    logger.info("✅ RELEVANTE AFSPRAAK | Patiënt: {} | Tijd: {} | Status: {} | UUID: {}",
-                            patientName, formattedTime, status, uuid);
-                }
-            }
-
-            logger.info("Tenant {} → {} relevante afspraken gevonden (binnen nu + 7 dagen)",
-                    tenantId, relevanteCount);
-
-        } catch (Exception e) {
-            logger.error("Fout bij verwerken JSON voor tenant {}: {}", tenantId, e.getMessage(), e);
-        }
+        return appointmentTime.isAfter(now) && appointmentTime.isBefore(now.plusDays(7));
     }
 }
