@@ -10,8 +10,8 @@ COPY gradle/ ./gradle/
 # Copy source code
 COPY src/ ./src/
 
-# Build the application
-RUN ./gradlew build -x test --no-daemon
+# Build the application (cache Gradle dependencies tussen builds)
+RUN --mount=type=cache,target=/root/.gradle ./gradlew build -x test --no-daemon
 
 # Runtime stage
 FROM eclipse-temurin:21-jre-alpine
