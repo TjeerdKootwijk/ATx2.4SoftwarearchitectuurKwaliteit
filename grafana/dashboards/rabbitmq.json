@@ -268,7 +268,7 @@
       "gridPos": { "x": 0, "y": 61, "w": 24, "h": 20 },
       "datasource": { "uid": "loki", "type": "loki" },
       "options": { "dedupStrategy": "none", "enableLogDetails": true, "prettifyLogMessage": false, "showCommonLabels": false, "showLabels": false, "showTime": true, "sortOrder": "Descending", "wrapLogMessage": true },
-      "targets": [{ "expr": "{service_name=\"atx24-app\"} |~ \"(?i)error|warn\"", "legendFormat": "", "refId": "A", "maxLines": 200 }]
+      "targets": [{ "expr": "{service_name=\"atx24-app\"} | detected_level=~\"error|warn\"", "legendFormat": "", "refId": "A", "maxLines": 200 }]
     },
 
     {
@@ -277,7 +277,7 @@
       "gridPos": { "x": 0, "y": 81, "w": 24, "h": 20 },
       "datasource": { "uid": "loki", "type": "loki" },
       "options": { "dedupStrategy": "none", "enableLogDetails": true, "prettifyLogMessage": false, "showCommonLabels": false, "showLabels": false, "showTime": true, "sortOrder": "Descending", "wrapLogMessage": true },
-      "targets": [{ "expr": "{service_name=\"atx24-app\"} !~ \"(?i)error|warn\"", "legendFormat": "", "refId": "A", "maxLines": 200 }]
+      "targets": [{ "expr": "{service_name=\"atx24-app\"} | detected_level !~ \"error|warn\"", "legendFormat": "", "refId": "A", "maxLines": 200 }]
     }
 
   ]
