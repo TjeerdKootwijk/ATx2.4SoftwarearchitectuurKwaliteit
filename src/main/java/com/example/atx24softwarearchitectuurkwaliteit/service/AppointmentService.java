@@ -34,68 +34,98 @@ public class AppointmentService {
 
     public void handleAppointment(AppointmentChangedEvent event) {
 
-        log.info("Handling appointment: {}",
-                event.getAppointmentId());
+        log.info("Handling appointment: {}", event.getAppointmentId());
 
-        /*
-         * Appointment time
-         *
-         * Assumes AppointmentChangedEvent contains:
-         * event.getAppointmentTime()
-         */
         LocalDateTime appointmentTime = event.getAppointmentDateTime();
+        Instant appointmentInstant = appointmentTime
+                .atZone(ZoneId.systemDefault())
+                .toInstant();
+
+        String location = event.getLocation() != null
+                ? event.getLocation()
+                : "locatie onbekend";
+
+        Instant now = Instant.now();
 
         /*
-         * Calculate notification moments
+         * =========================
+         * 24H REMINDER
+         * =========================
          */
-        LocalDateTime reminder24hLocal = appointmentTime.minus(24, ChronoUnit.HOURS);
-        LocalDateTime reminder1hLocal = appointmentTime.minus(1, ChronoUnit.HOURS);
 
-        Instant reminder24h = reminder24hLocal.atZone(ZoneId.systemDefault()).toInstant();
-        Instant reminder1h = reminder1hLocal.atZone(ZoneId.systemDefault()).toInstant();
+        Instant reminder24h = appointmentTime
+                .minusHours(24)
+                .atZone(ZoneId.systemDefault())
+                .toInstant();
+
+        Instant cutoff24h = appointmentTime
+                .minusHours(23)   // 🔥 grace window (1 hour late allowed)
+                .atZone(ZoneId.systemDefault())
+                .toInstant();
+
+        if (now.isBefore(cutoff24h)) {
+
+            String body24h =
+                    "U heeft over 24 uur een afspraak op " + location +
+                            " om " + appointmentTime + ".";
+
+            NotificationQueueMessage notification24h =
+                    new NotificationQueueMessage(
+                            UUID.randomUUID(),
+                            "06 123456",
+                            "Afspraak herinnering",
+                            body24h,
+                            notificationProvider,
+                            "APPOINTMENT_REMINDER_24H",
+                            reminder24h
+                    );
+
+            rabbitMQProducer.publish(notification24h);
+
+            log.info("Queued 24h reminder for appointment {}", event.getAppointmentId());
+
+        } else {
+            log.debug("24h reminder skipped (outside grace window) for appointment {}",
+                    event.getAppointmentId());
+        }
 
         /*
-         * Get location or use default
+         * =========================
+         * 1H REMINDER
+         * =========================
          */
-        String location = event.getLocation() != null ? event.getLocation() : "locatie onbekend";
 
-        /*
-         * Create 24-hour reminder
-         */
-        String body24h = "U heeft over 24 uur een afspraak op " + location + " om " + appointmentTime + ".";
-        NotificationQueueMessage notification24h =
-                new NotificationQueueMessage(
-                        UUID.randomUUID(),
-                        "06 123456",
-                        "Afspraak herinnering",
-                        body24h,
-                        notificationProvider,
-                        "APPOINTMENT_REMINDER_24H",
-                        reminder24h
-                );
+        Instant reminder1h = appointmentTime
+                .minusHours(1)
+                .atZone(ZoneId.systemDefault())
+                .toInstant();
 
-        /*
-         * Create 1-hour reminder
-         */
-        String body1h = "U heeft over 1 uur een afspraak op " + location + " om " + appointmentTime + ".";
-        NotificationQueueMessage notification1h =
-                new NotificationQueueMessage(
-                        UUID.randomUUID(),
-                        "06 123456",
-                        "Afspraak herinnering",
-                        body1h,
-                        notificationProvider,
-                        "APPOINTMENT_REMINDER_1H",
-                        reminder1h
-                );
+        Instant cutoff1h = appointmentInstant; // allowed until appointment starts
 
-        /*
-         * Publish to RabbitMQ
-         */
-        rabbitMQProducer.publish(notification24h);
-        rabbitMQProducer.publish(notification1h);
+        if (now.isBefore(cutoff1h)) {
 
-        log.info("Queued 24h and 1h reminders for appointment {}",
-                event.getAppointmentId());
+            String body1h =
+                    "U heeft over 1 uur een afspraak op " + location +
+                            " om " + appointmentTime + ".";
+
+            NotificationQueueMessage notification1h =
+                    new NotificationQueueMessage(
+                            UUID.randomUUID(),
+                            "06 123456",
+                            "Afspraak herinnering",
+                            body1h,
+                            notificationProvider,
+                            "APPOINTMENT_REMINDER_1H",
+                            reminder1h
+                    );
+
+            rabbitMQProducer.publish(notification1h);
+
+            log.info("Queued 1h reminder for appointment {}", event.getAppointmentId());
+
+        } else {
+            log.debug("1h reminder skipped (appointment already started/passed) for appointment {}",
+                    event.getAppointmentId());
+        }
     }
 }
