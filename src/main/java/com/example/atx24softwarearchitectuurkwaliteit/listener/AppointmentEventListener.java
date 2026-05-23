@@ -7,6 +7,7 @@ import com.example.atx24softwarearchitectuurkwaliteit.model.AppointmentChangedEv
 import com.example.atx24softwarearchitectuurkwaliteit.model.TenantConfiguration;
 import com.example.atx24softwarearchitectuurkwaliteit.provider.ProviderType;
 import com.example.atx24softwarearchitectuurkwaliteit.service.TenantService;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
@@ -72,7 +73,7 @@ public class AppointmentEventListener {
             return;
         }
 
-        ProviderType provider = resolveProvider(tenant.getNotificationProvider());
+        String provider = resolveProvider(tenant.getNotificationProvider());
         NotificationQueueMessage message = buildNotificationMessage(event, provider);
 
         log.info("[STEP 2→3] NotificationQueueMessage created — forwarding to notification queue");
@@ -86,7 +87,7 @@ public class AppointmentEventListener {
         log.info("[STEP 2✓] Notification published to RabbitMQ notification queue");
     }
 
-    private NotificationQueueMessage buildNotificationMessage(AppointmentChangedEvent event, ProviderType provider) {
+    private NotificationQueueMessage buildNotificationMessage(AppointmentChangedEvent event, String provider) {
         String body = String.format(
                 "Reminder: you have an appointment on %s%s%s.",
                 event.getAppointmentDateTime(),
@@ -107,20 +108,15 @@ public class AppointmentEventListener {
     }
 
     /**
-     * Resolves the provider name from the tenant configuration to a {@link ProviderType}.
-     * Falls back to SWIFTSEND if the value is missing or unrecognised.
+     * Normaliseert de provider-naam uit de tenant-configuratie naar hoofdletters.
+     * Falls back to SWIFTSEND if the value is missing.
      * Configure via: OPENMRS_NOTIFICATION_PROVIDER=SWIFTSEND|LEGACYLINK|ASYNCFLOW|SECUREPOST
      */
-    private ProviderType resolveProvider(String providerName) {
+    private String resolveProvider(String providerName) {
         if (providerName == null || providerName.isBlank()) {
             log.warn("No provider configured for tenant — falling back to SWIFTSEND");
             return ProviderType.SWIFTSEND;
         }
-        try {
-            return ProviderType.valueOf(providerName.trim().toUpperCase());
-        } catch (IllegalArgumentException e) {
-            log.warn("Unknown provider '{}' — falling back to SWIFTSEND", providerName);
-            return ProviderType.SWIFTSEND;
-        }
+        return providerName.trim().toUpperCase();
     }
 }

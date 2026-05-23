@@ -71,9 +71,9 @@ public class RabbitMQConsumer {
         ProviderSendResult result = provider.sendMessage(message);
 
         // Resolve context fields used for both metrics and logging
-        String tenantId      = message.getTenantId() != null ? message.getTenantId() : "unknown";
+        String tenantId       = message.getTenantId() != null ? message.getTenantId() : "unknown";
         String notificationId = message.getNotificationId().toString();
-        String providerName  = message.getProvider().name();
+        String providerName   = message.getProvider();
 
         if (!result.isSuccess()) {
             log.error("Delivery FAILED via {} | notificationId={}", providerName, notificationId);
