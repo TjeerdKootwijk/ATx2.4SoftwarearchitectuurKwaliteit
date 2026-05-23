@@ -21,7 +21,7 @@ public class SwiftSendProvider implements MessagingProvider {
     }
 
     @Override
-    public ProviderType GetType() {
+    public String getProviderName() {
         return ProviderType.SWIFTSEND;
     }
 
