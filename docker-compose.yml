@@ -89,7 +89,7 @@ services:
       SPRING_RABBITMQ_USERNAME: guest
       SPRING_RABBITMQ_PASSWORD: guest
       PROVIDERS_BASE_URL: http://fakeMessageProvider:8080
-      # 🔥 OTEL CONFIG (BELANGRIJK)
+      # OTEL CONFIG (BELANGRIJK)
       OTEL_SERVICE_NAME: atx24-app
       OTEL_EXPORTER_OTLP_ENDPOINT: http://lgtm:4317
       OTEL_EXPORTER_OTLP_PROTOCOL: grpc
@@ -109,6 +109,8 @@ services:
       OPENMRS_USERNAME: ${OPENMRS_USERNAME:-admin}
       OPENMRS_PASSWORD: ${OPENMRS_PASSWORD:-admin}
       OPENMRS_NOTIFICATION_PROVIDER: ${OPENMRS_NOTIFICATION_PROVIDER:-SWIFTSEND}
+      # AES-256 key for encrypting sensitive DB columns (NFR5) — set in .env
+      AES_ENCRYPTION_KEY: ${AES_ENCRYPTION_KEY}
     ports:
       - "8080:8080"
     env_file:
@@ -132,7 +134,7 @@ services:
       rabbitmq:
         condition: service_healthy
 
-  # 🔥 LGTM STACK (Grafana + Loki + Tempo + Mimir + OTEL Collector)
+  # LGTM STACK (Grafana + Loki + Tempo + Mimir + OTEL Collector)
   lgtm:
     image: grafana/otel-lgtm:latest
     container_name: lgtm
