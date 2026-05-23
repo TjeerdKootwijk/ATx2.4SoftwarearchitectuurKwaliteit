@@ -58,7 +58,7 @@ public class RabbitMqRetryHandler implements RetryHandler {
 
         meterRegistry.counter("notifications_retry_total",
                 "attempt", String.valueOf(nextAttempt),
-                "provider", payload.getProvider().name()).increment();
+                "provider", payload.getProvider()).increment();
     }
 
     private void sendToDeadLetter(NotificationQueueMessage payload, int retryCount) {
@@ -71,6 +71,6 @@ public class RabbitMqRetryHandler implements RetryHandler {
                 payload);
 
         meterRegistry.counter("notifications_dead_letter_total",
-                "provider", payload.getProvider().name()).increment();
+                "provider", payload.getProvider()).increment();
     }
 }

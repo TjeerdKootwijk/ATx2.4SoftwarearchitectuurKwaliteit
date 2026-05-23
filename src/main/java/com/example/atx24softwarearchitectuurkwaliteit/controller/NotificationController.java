@@ -4,7 +4,6 @@ import com.example.atx24softwarearchitectuurkwaliteit.dto.NotificationRequest;
 import com.example.atx24softwarearchitectuurkwaliteit.messaging.queue.RabbitMQProducer;
 import com.example.atx24softwarearchitectuurkwaliteit.messaging.queue.dto.NotificationQueueMessage;
 import com.example.atx24softwarearchitectuurkwaliteit.model.Notification;
-import com.example.atx24softwarearchitectuurkwaliteit.provider.ProviderType;
 import com.example.atx24softwarearchitectuurkwaliteit.service.NotificationService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -82,14 +81,14 @@ public class NotificationController {
     }
 
     @PostMapping("/test")
-    public ResponseEntity<String> testNotification(@RequestParam( defaultValue = "SWIFTSEND" ) ProviderType providerType ) {
+    public ResponseEntity<String> testNotification(@RequestParam(defaultValue = "SWIFTSEND") String providerType) {
         NotificationQueueMessage testMessage = new NotificationQueueMessage(
                 UUID.randomUUID(),
                 "test-tenant",
                 "+120312031230",
                 "Appointment Reminder",
                 "This is a test notification.",
-                providerType,
+                providerType.toUpperCase(),
                 "APPOINTMENT_REMINDER",
                 Instant.now()
         );

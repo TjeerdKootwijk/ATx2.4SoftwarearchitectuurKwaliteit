@@ -23,6 +23,7 @@ class LegacyLinkProviderTest {
         UUID notificationId = UUID.randomUUID();
         NotificationQueueMessage message = new NotificationQueueMessage(
             notificationId,
+            "test-tenant",
             "+31612345678",
             "YourCompany",
             "Hello from LegacyLink",
@@ -45,9 +46,9 @@ class LegacyLinkProviderTest {
     }
 
     @Test
-    void getType_returnsLegacyLink() {
+    void getProviderName_returnsLegacyLink() {
         LegacyLinkProvider provider = new LegacyLinkProvider(mock(LegacyLinkClient.class));
 
-        assertEquals(ProviderType.LEGACYLINK, provider.GetType());
+        assertEquals(ProviderType.LEGACYLINK, provider.getProviderName());
     }
 }

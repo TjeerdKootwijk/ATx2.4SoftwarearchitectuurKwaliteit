@@ -19,7 +19,7 @@ public class SecurePostProvider implements MessagingProvider {
     }
 
     @Override
-    public ProviderType GetType() {
+    public String getProviderName() {
         return ProviderType.SECUREPOST;
     }
 
