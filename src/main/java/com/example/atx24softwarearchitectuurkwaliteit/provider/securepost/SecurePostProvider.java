@@ -40,13 +40,14 @@ public class SecurePostProvider implements MessagingProvider {
                 log.info("SecurePost message sent successfully");
                 return ProviderSendResult.send(message.getNotificationId().toString());
             } else {
-                log.warn("SecurePost message failed to send");
-                return ProviderSendResult.error(message.getNotificationId().toString());
+                String errMsg = response != null ? response.getErrorMessage() : "No response from SecurePost";
+                log.warn("SecurePost message failed to send: {}", errMsg);
+                return ProviderSendResult.error(message.getNotificationId().toString(), errMsg);
             }
 
         } catch (Exception e) {
             log.error("Error sending SecurePost message to {}: {}", message.getRecipient(), e.getMessage(), e);
-            return ProviderSendResult.error(message.getNotificationId().toString());
+            return ProviderSendResult.error(message.getNotificationId().toString(), e.getMessage());
         }
     }
 }

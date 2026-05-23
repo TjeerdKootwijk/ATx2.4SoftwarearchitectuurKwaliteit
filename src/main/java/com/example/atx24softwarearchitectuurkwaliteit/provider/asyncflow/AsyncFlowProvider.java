@@ -47,13 +47,13 @@ public class AsyncFlowProvider implements MessagingProvider {
                 log.info("AsyncFlow message queued successfully with ID: {}", response.getTrackingId());
                 return ProviderSendResult.send(response.getTrackingId());
             } else {
-                log.warn("AsyncFlow message failed to queue: {}",
-                        response != null ? response.getMessage() : "No response");
-                return ProviderSendResult.error(message.getNotificationId().toString());
+                String errMsg = response != null ? response.getMessage() : "No response from AsyncFlow";
+                log.warn("AsyncFlow message failed to queue: {}", errMsg);
+                return ProviderSendResult.error(message.getNotificationId().toString(), errMsg);
             }
         } catch (Exception e) {
             log.error("Exception while sending via AsyncFlow", e);
-            return ProviderSendResult.error(message.getNotificationId().toString());
+            return ProviderSendResult.error(message.getNotificationId().toString(), e.getMessage());
         }
     }
 

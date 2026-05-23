@@ -16,11 +16,12 @@ import java.time.Instant;
 import java.util.UUID;
 
 /**
- * Luistert naar AppointmentChangedEvents van RabbitMQ en stuurt een
- * NotificationQueueMessage door naar de notification queue.
+ * Listens for {@link AppointmentChangedEvent} messages on the appointment queue
+ * and forwards a {@link NotificationQueueMessage} to the notification queue.
  *
- * De provider wordt per tenant bepaald via de OPENMRS_NOTIFICATION_PROVIDER env var.
- * Fallback is SWIFTSEND als er geen provider geconfigureerd is.
+ * The messaging provider is resolved per tenant via the
+ * {@code OPENMRS_NOTIFICATION_PROVIDER} environment variable.
+ * Falls back to SWIFTSEND when no provider is configured.
  */
 @Component
 public class AppointmentEventListener {
@@ -38,66 +39,66 @@ public class AppointmentEventListener {
     @RabbitListener(queues = RabbitMQConfig.APPOINTMENT_QUEUE)
     public void handleAppointmentEvent(AppointmentChangedEvent event) {
         log.info("------------------------------------------------");
-        log.info("[STAP 2] AppointmentEvent ontvangen uit RabbitMQ");
+        log.info("[STEP 2] AppointmentEvent received from RabbitMQ");
         log.info("  Event ID    : {}", event.getEventId());
         log.info("  Tenant      : {}", event.getTenantId());
-        log.info("  Patiënt     : {}", event.getPatientName());
-        log.info("  Afspraak op : {}", event.getAppointmentDateTime());
-        log.info("  Locatie     : {}", event.getLocation());
+        log.info("  Patient     : {}", event.getPatientName());
+        log.info("  Appointment : {}", event.getAppointmentDateTime());
+        log.info("  Location    : {}", event.getLocation());
         log.info("  Status      : {}", event.getStatus());
-        log.info("  Wijziging   : {}", event.getChangeType());
+        log.info("  Change type : {}", event.getChangeType());
         log.info("------------------------------------------------");
 
         try {
             switch (event.getChangeType()) {
-                case "CREATED", "UPDATED" -> verstuurNotificatie(event);
-                case "DELETED"            -> log.info("Afspraak geannuleerd — geen notificatie verstuurd voor: {}", event.getAppointmentId());
-                default                   -> log.warn("Onbekend changeType '{}' voor event: {}", event.getChangeType(), event.getEventId());
+                case "CREATED", "UPDATED" -> sendNotification(event);
+                case "DELETED"            -> log.info("Appointment cancelled — no notification sent for: {}", event.getAppointmentId());
+                default                   -> log.warn("Unknown changeType '{}' for event: {}", event.getChangeType(), event.getEventId());
             }
         } catch (Exception e) {
-            log.error("Fout bij verwerken appointment event {}: {}", event.getEventId(), e.getMessage(), e);
+            log.error("Error processing appointment event {}: {}", event.getEventId(), e.getMessage(), e);
         }
     }
 
-    private void verstuurNotificatie(AppointmentChangedEvent event) {
+    private void sendNotification(AppointmentChangedEvent event) {
         if (event.getAppointmentDateTime() == null) {
-            log.warn("Geen afspraaktijd aanwezig voor event: {} — notificatie overgeslagen", event.getEventId());
+            log.warn("No appointment time present for event: {} — notification skipped", event.getEventId());
             return;
         }
 
         TenantConfiguration tenant = tenantService.getTenantConfiguration(event.getTenantId());
         if (tenant == null) {
-            log.error("Tenant '{}' niet gevonden — notificatie kan niet verstuurd worden", event.getTenantId());
+            log.error("Tenant '{}' not found — cannot send notification", event.getTenantId());
             return;
         }
 
-        ProviderType provider = bepaalProvider(tenant.getNotificationProvider());
+        ProviderType provider = resolveProvider(tenant.getNotificationProvider());
+        NotificationQueueMessage message = buildNotificationMessage(event, provider);
 
-        NotificationQueueMessage bericht = bouwNotificatieBericht(event, provider);
-
-        log.info("[STAP 2→3] NotificationQueueMessage aangemaakt — doorsturen naar notification queue");
-        log.info("  Notification ID : {}", bericht.getNotificationId());
+        log.info("[STEP 2→3] NotificationQueueMessage created — forwarding to notification queue");
+        log.info("  Notification ID : {}", message.getNotificationId());
         log.info("  Provider        : {}", provider);
-        log.info("  Ontvanger       : {}", bericht.getRecipient());
-        log.info("  Onderwerp       : {}", bericht.getSubject());
+        log.info("  Recipient       : {}", message.getRecipient());
+        log.info("  Subject         : {}", message.getSubject());
 
-        producer.publish(bericht);
+        producer.publish(message);
 
-        log.info("[STAP 2✓] Notificatie gepubliceerd naar RabbitMQ notification queue");
+        log.info("[STEP 2✓] Notification published to RabbitMQ notification queue");
     }
 
-    private NotificationQueueMessage bouwNotificatieBericht(AppointmentChangedEvent event, ProviderType provider) {
+    private NotificationQueueMessage buildNotificationMessage(AppointmentChangedEvent event, ProviderType provider) {
         String body = String.format(
-                "Herinnering: u heeft een afspraak op %s%s%s.",
+                "Reminder: you have an appointment on %s%s%s.",
                 event.getAppointmentDateTime(),
-                event.getLocation() != null  ? " | Locatie: " + event.getLocation()     : "",
-                event.getPatientName() != null ? " | Patiënt: " + event.getPatientName() : ""
+                event.getLocation()   != null ? " | Location: " + event.getLocation()   : "",
+                event.getPatientName() != null ? " | Patient: "  + event.getPatientName() : ""
         );
 
         return new NotificationQueueMessage(
                 UUID.randomUUID(),
-                event.getPatientId() != null ? event.getPatientId() : "onbekend",
-                "Afspraakherinnering",
+                event.getTenantId(),
+                event.getPatientId() != null ? event.getPatientId() : "unknown",
+                "Appointment Reminder",
                 body,
                 provider,
                 "APPOINTMENT_REMINDER",
@@ -106,19 +107,19 @@ public class AppointmentEventListener {
     }
 
     /**
-     * Zet de provider-naam uit de tenant config om naar een ProviderType.
-     * Valt terug op SWIFTSEND als de waarde ontbreekt of onbekend is.
-     * Stel in via env var: OPENMRS_NOTIFICATION_PROVIDER=SWIFTSEND|LEGACYLINK|ASYNCFLOW|SECUREPOST
+     * Resolves the provider name from the tenant configuration to a {@link ProviderType}.
+     * Falls back to SWIFTSEND if the value is missing or unrecognised.
+     * Configure via: OPENMRS_NOTIFICATION_PROVIDER=SWIFTSEND|LEGACYLINK|ASYNCFLOW|SECUREPOST
      */
-    private ProviderType bepaalProvider(String providerNaam) {
-        if (providerNaam == null || providerNaam.isBlank()) {
-            log.warn("Geen provider geconfigureerd voor tenant — fallback naar SWIFTSEND");
+    private ProviderType resolveProvider(String providerName) {
+        if (providerName == null || providerName.isBlank()) {
+            log.warn("No provider configured for tenant — falling back to SWIFTSEND");
             return ProviderType.SWIFTSEND;
         }
         try {
-            return ProviderType.valueOf(providerNaam.trim().toUpperCase());
+            return ProviderType.valueOf(providerName.trim().toUpperCase());
         } catch (IllegalArgumentException e) {
-            log.warn("Onbekende provider '{}' — fallback naar SWIFTSEND", providerNaam);
+            log.warn("Unknown provider '{}' — falling back to SWIFTSEND", providerName);
             return ProviderType.SWIFTSEND;
         }
     }

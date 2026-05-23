@@ -85,11 +85,12 @@ public class NotificationController {
     public ResponseEntity<String> testNotification(@RequestParam( defaultValue = "SWIFTSEND" ) ProviderType providerType ) {
         NotificationQueueMessage testMessage = new NotificationQueueMessage(
                 UUID.randomUUID(),
+                "test-tenant",
                 "+120312031230",
-                "Afsrpaak dingejte",
-                "safdsafsafsa",
+                "Appointment Reminder",
+                "This is a test notification.",
                 providerType,
-                "APOINTMENT_REMINDER",
+                "APPOINTMENT_REMINDER",
                 Instant.now()
         );
         rabbitMQProducer.publish(testMessage);
