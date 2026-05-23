@@ -1,8 +1,6 @@
 package com.example.atx24softwarearchitectuurkwaliteit.messaging.queue.dto;
 
 
-import com.example.atx24softwarearchitectuurkwaliteit.provider.ProviderType;
-
 import java.time.Instant;
 import java.util.UUID;
 
@@ -13,7 +11,7 @@ public class NotificationQueueMessage {
     private String recipient;
     private String subject;
     private String body;
-    private ProviderType provider;
+    private String provider;
     private String messageType;
     private Instant queuedAt;
 
@@ -26,7 +24,7 @@ public class NotificationQueueMessage {
             String recipient,
             String subject,
             String body,
-            ProviderType provider,
+            String provider,
             String messageType,
             Instant queuedAt) {
         this.notificationId = notificationId;
@@ -79,11 +77,11 @@ public class NotificationQueueMessage {
         this.body = body;
     }
 
-    public ProviderType getProvider() {
+    public String getProvider() {
         return provider;
     }
 
-    public void setProvider(ProviderType provider) {
+    public void setProvider(String provider) {
         this.provider = provider;
     }
 

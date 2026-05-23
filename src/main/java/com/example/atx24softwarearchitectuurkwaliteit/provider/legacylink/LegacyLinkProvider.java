@@ -29,7 +29,7 @@ public class LegacyLinkProvider implements MessagingProvider {
      * queue staan vlagd met type 'LEGACYLINK'.
      */
     @Override
-    public ProviderType GetType() {
+    public String getProviderName() {
         return ProviderType.LEGACYLINK;
     }
 

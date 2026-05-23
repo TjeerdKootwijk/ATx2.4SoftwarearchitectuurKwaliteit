@@ -3,7 +3,6 @@ package com.example.atx24softwarearchitectuurkwaliteit.service;
 import com.example.atx24softwarearchitectuurkwaliteit.messaging.queue.RabbitMQProducer;
 import com.example.atx24softwarearchitectuurkwaliteit.messaging.queue.dto.NotificationQueueMessage;
 import com.example.atx24softwarearchitectuurkwaliteit.model.AppointmentChangedEvent;
-import com.example.atx24softwarearchitectuurkwaliteit.provider.ProviderType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.env.Environment;
@@ -23,13 +22,12 @@ public class AppointmentService {
 
     private final RabbitMQProducer rabbitMQProducer;
     private final Environment env;
-    private final ProviderType notificationProvider;
+    private final String notificationProvider;
 
     public AppointmentService(RabbitMQProducer rabbitMQProducer, Environment env) {
         this.rabbitMQProducer = rabbitMQProducer;
         this.env = env;
-        String providerName = env.getProperty("OPENMRS_NOTIFICATION_PROVIDER", "SWIFTSEND");
-        this.notificationProvider = ProviderType.valueOf(providerName.toUpperCase());
+        this.notificationProvider = env.getProperty("OPENMRS_NOTIFICATION_PROVIDER", "SWIFTSEND").toUpperCase();
     }
 
     public void handleAppointment(AppointmentChangedEvent event) {
