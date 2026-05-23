@@ -26,6 +26,10 @@ public class ProviderSendResult {
         return new ProviderSendResult(false, providerMessageId, "ERROR", null);
     }
 
+    public static ProviderSendResult error(String providerMessageId, String errorMessage) {
+        return new ProviderSendResult(false, providerMessageId, "ERROR", errorMessage);
+    }
+
     public boolean isSuccess(){
         return success;
     }

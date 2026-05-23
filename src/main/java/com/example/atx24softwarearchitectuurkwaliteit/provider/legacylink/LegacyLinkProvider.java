@@ -55,11 +55,14 @@ public class LegacyLinkProvider implements MessagingProvider {
                 return ProviderSendResult.send(response.getMessageReference());
             }
 
-            log.warn("LegacyLink message failed to send");
-            return ProviderSendResult.error(message.getNotificationId().toString());
+            String errMsg = response != null
+                    ? "StatusCode=" + response.getStatusCode()
+                    : "No response from LegacyLink";
+            log.warn("LegacyLink message failed to send: {}", errMsg);
+            return ProviderSendResult.error(message.getNotificationId().toString(), errMsg);
         } catch (Exception e) {
             log.error("Error sending LegacyLink message to {}: {}", message.getRecipient(), e.getMessage(), e);
-            return ProviderSendResult.error(message.getNotificationId().toString());
+            return ProviderSendResult.error(message.getNotificationId().toString(), e.getMessage());
         }
     }
 }
