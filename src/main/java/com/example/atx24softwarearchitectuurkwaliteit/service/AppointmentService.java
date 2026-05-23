@@ -15,6 +15,8 @@ import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.UUID;
 
+import java.time.Duration;
+
 @Service
 public class AppointmentService {
 
@@ -82,7 +84,23 @@ public class AppointmentService {
                             reminder24h
                     );
 
-            rabbitMQProducer.publish(notification24h);
+            long delay24h = Duration
+                    .between(Instant.now(), reminder24h)
+                    .toMillis();
+
+            /*
+             * If reminder time already passed
+             * but still inside grace window,
+             * send immediately.
+             */
+            if (delay24h < 0) {
+                delay24h = 0;
+            }
+
+            rabbitMQProducer.publish24hDelayed(
+                    notification24h,
+                    delay24h
+            );
 
             log.info("Queued 24h reminder for appointment {}", event.getAppointmentId());
 
@@ -123,7 +141,18 @@ public class AppointmentService {
                             reminder1h
                     );
 
-            rabbitMQProducer.publish(notification1h);
+            long delay1h = Duration
+                    .between(Instant.now(), reminder1h)
+                    .toMillis();
+
+            if (delay1h < 0) {
+                delay1h = 0;
+            }
+
+            rabbitMQProducer.publish1hDelayed(
+                    notification1h,
+                    delay1h
+            );
 
             log.info("Queued 1h reminder for appointment {}", event.getAppointmentId());
 

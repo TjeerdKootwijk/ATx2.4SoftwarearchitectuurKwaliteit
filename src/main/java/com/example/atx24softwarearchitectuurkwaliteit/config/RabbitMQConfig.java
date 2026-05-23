@@ -10,6 +10,9 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.client.RestTemplate;
 
+import java.util.HashMap;
+import java.util.Map;
+
 @Configuration
 public class RabbitMQConfig {
 
@@ -103,5 +106,45 @@ public class RabbitMQConfig {
         RabbitTemplate template = new RabbitTemplate(connectionFactory);
         template.setMessageConverter(converter);
         return template;
+    }
+
+    /*
+     * 24h delay queue
+     */
+    @Bean
+    public Queue reminder24hDelayQueue() {
+
+        Map<String, Object> args = new HashMap<>();
+
+        args.put("x-dead-letter-exchange", "");
+        args.put("x-dead-letter-routing-key", "notification-queue");
+
+        return new Queue(
+                "reminder-24h-delay-queue",
+                true,
+                false,
+                false,
+                args
+        );
+    }
+
+    /*
+     * 1h delay queue
+     */
+    @Bean
+    public Queue reminder1hDelayQueue() {
+
+        Map<String, Object> args = new HashMap<>();
+
+        args.put("x-dead-letter-exchange", "");
+        args.put("x-dead-letter-routing-key", "notification-queue");
+
+        return new Queue(
+                "reminder-1h-delay-queue",
+                true,
+                false,
+                false,
+                args
+        );
     }
 }
