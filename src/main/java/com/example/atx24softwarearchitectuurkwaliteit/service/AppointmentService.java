@@ -72,6 +72,7 @@ public class AppointmentService {
             NotificationQueueMessage notification24h =
                     new NotificationQueueMessage(
                             UUID.randomUUID(),
+                            event.getTenantId(),
                             "06 123456",
                             "Afspraak herinnering",
                             body24h,
@@ -111,6 +112,7 @@ public class AppointmentService {
             NotificationQueueMessage notification1h =
                     new NotificationQueueMessage(
                             UUID.randomUUID(),
+                            event.getTenantId(),
                             "06 123456",
                             "Afspraak herinnering",
                             body1h,
