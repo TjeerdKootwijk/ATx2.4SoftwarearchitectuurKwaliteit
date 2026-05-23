@@ -1,0 +1,90 @@
+name: Build & Test
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    name: Build & Test
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: atx24db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      rabbitmq:
+        image: rabbitmq:3-alpine
+        ports:
+          - 5672:5672
+        options: >-
+          --health-cmd "rabbitmq-diagnostics -q ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: gradle-
+
+      - name: Build & run tests
+        env:
+          # Database — test values, not sensitive
+          SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/atx24db
+          SPRING_DATASOURCE_USERNAME: postgres
+          SPRING_DATASOURCE_PASSWORD: postgres
+          # RabbitMQ — default guest credentials, not sensitive
+          SPRING_RABBITMQ_HOST: localhost
+          SPRING_RABBITMQ_PORT: 5672
+          SPRING_RABBITMQ_USERNAME: guest
+          SPRING_RABBITMQ_PASSWORD: guest
+          # Secrets — stored in GitHub repo Settings → Secrets
+          AES_ENCRYPTION_KEY: ${{ secrets.AES_ENCRYPTION_KEY }}
+          PROVIDERS_ASYNCFLOW_API_KEY: ${{ secrets.PROVIDERS_ASYNCFLOW_API_KEY }}
+          # Tenant config — test values, not sensitive
+          OPENMRS_NOTIFICATION_PROVIDER: SWIFTSEND
+          OPENMRS_TENANT_ID: test-ziekenhuis
+          OPENMRS_ORGANIZATION_NAME: Test Ziekenhuis
+          OPENMRS_BASE_URL: http://localhost:8090
+          OPENMRS_USERNAME: admin
+          OPENMRS_PASSWORD: admin
+          PROVIDERS_BASE_URL: http://localhost:1337
+          PROVIDERS_STUDENT_GROUP: groupc1
+          PROVIDERS_ASYNCFLOW_DEFAULT_PRIORITY: normal
+        run: ./gradlew build --no-daemon
+
+      - name: Upload test report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-report
+          path: build/reports/tests/test/
+          retention-days: 14
