@@ -34,7 +34,8 @@ public class AppointmentService {
 
     public void handleAppointment(AppointmentChangedEvent event) {
 
-        log.info("Handling appointment: {}", event.getAppointmentId());
+        log.info("Handling appointment: {} | dateTime={} | changeType={}",
+                event.getAppointmentId(), event.getAppointmentDateTime(), event.getChangeType());
 
         LocalDateTime appointmentTime = event.getAppointmentDateTime();
         Instant appointmentInstant = appointmentTime
@@ -86,8 +87,8 @@ public class AppointmentService {
             log.info("Queued 24h reminder for appointment {}", event.getAppointmentId());
 
         } else {
-            log.debug("24h reminder skipped (outside grace window) for appointment {}",
-                    event.getAppointmentId());
+            log.info("24h reminder skipped — appointment not far enough in future | appointment={} | now={} | cutoff24h={}",
+                    event.getAppointmentId(), now, cutoff24h);
         }
 
         /*
@@ -126,8 +127,8 @@ public class AppointmentService {
             log.info("Queued 1h reminder for appointment {}", event.getAppointmentId());
 
         } else {
-            log.debug("1h reminder skipped (appointment already started/passed) for appointment {}",
-                    event.getAppointmentId());
+            log.info("1h reminder skipped — appointment already started or passed | appointment={} | now={} | cutoff1h={}",
+                    event.getAppointmentId(), now, cutoff1h);
         }
     }
 }

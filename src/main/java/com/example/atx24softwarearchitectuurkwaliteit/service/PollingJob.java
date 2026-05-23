@@ -14,6 +14,7 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 
+
 /**
  * SRP: puur een orkestrator — coördineert de stappen maar doet zelf geen HTTP-calls,
  *      mapping, validatie of publicatie.
@@ -34,23 +35,23 @@ public class PollingJob {
     private final AppointmentMapper mapper;
     private final AppointmentEventConverter converter;
     private final AppointmentValidator validator;
-
+    private final AppointmentService appointmentService;
     private final IdempotencyService idempotencyService;
-
 
     public PollingJob(TenantService tenantService,
                       AppointmentFetcher fetcher,
                       AppointmentMapper mapper,
                       AppointmentEventConverter converter,
                       AppointmentValidator validator,
+                      AppointmentService appointmentService,
                       IdempotencyService idempotencyService) {
         this.tenantService = tenantService;
         this.fetcher = fetcher;
         this.mapper = mapper;
         this.converter = converter;
         this.validator = validator;
+        this.appointmentService = appointmentService;
         this.idempotencyService = idempotencyService;
-
     }
 
     @Scheduled(fixedDelay = 300000, initialDelay = 10000)
@@ -90,9 +91,14 @@ public class PollingJob {
                 // Stap 3: converteer FHIR Appointment → intern event
                 AppointmentChangedEvent event = converter.convert(fhirAppointment, tenantId);
 
-                // Stap 4: publiceer naar RabbitMQ (NFR 6 — queueing) oud
-                // stap 4: stuurt data naar idempotency service new
-                idempotencyService.processAppointment(event);
+                // Stap 4: idempotency check — skip als dit event al eerder verwerkt is
+                if (!idempotencyService.processAppointment(event)) {
+                    continue;
+                }
+
+                // Stap 5: AppointmentService berekent 24h/1h windows en publiceert naar RabbitMQ
+                appointmentService.handleAppointment(event);
+                log.info("Appointment {} forwarded to AppointmentService", event.getAppointmentId());
                 published++;
 
             } catch (Exception e) {
