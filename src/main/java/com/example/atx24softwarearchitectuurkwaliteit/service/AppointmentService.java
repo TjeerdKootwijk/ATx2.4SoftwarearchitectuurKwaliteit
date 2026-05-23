@@ -22,7 +22,7 @@ public class AppointmentService {
             LoggerFactory.getLogger(AppointmentService.class);
 
     private final RabbitMQProducer rabbitMQProducer;
-    private final ProviderType notificationProvider;
+    private final String notificationProvider;
 
     public AppointmentService(RabbitMQProducer rabbitMQProducer, Environment env) {
         this.rabbitMQProducer = rabbitMQProducer;
@@ -32,8 +32,7 @@ public class AppointmentService {
                 "SWIFTSEND"
         );
 
-        this.notificationProvider =
-                ProviderType.valueOf(providerName.toUpperCase());
+        this.notificationProvider = env.getProperty("OPENMRS_NOTIFICATION_PROVIDER", "SWIFTSEND").toUpperCase();
     }
 
     public void handleAppointment(AppointmentChangedEvent event) {
