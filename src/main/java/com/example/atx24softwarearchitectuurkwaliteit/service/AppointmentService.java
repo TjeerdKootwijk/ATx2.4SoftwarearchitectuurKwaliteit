@@ -102,9 +102,10 @@ public class AppointmentService {
                 .atZone(ZoneId.systemDefault())
                 .toInstant();
 
-        Instant cutoff1h = appointmentInstant; // allowed until appointment starts
+        Instant cutoff1h     = appointmentInstant;                   // uiterste grens: afspraak mag nog niet begonnen zijn
+        Instant window1hMax  = now.plus(12, ChronoUnit.HOURS);      // bovengrens: afspraak moet binnen 12 uur zijn
 
-        if (now.isBefore(cutoff1h)) {
+        if (now.isBefore(cutoff1h) && appointmentInstant.isBefore(window1hMax)) {
 
             String body1h =
                     "U heeft over 1 uur een afspraak op " + location +
