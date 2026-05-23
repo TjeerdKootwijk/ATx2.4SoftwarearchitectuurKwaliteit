@@ -9,6 +9,7 @@ import java.util.UUID;
 public class NotificationQueueMessage {
 
     private UUID notificationId;
+    private String tenantId;
     private String recipient;
     private String subject;
     private String body;
@@ -21,13 +22,15 @@ public class NotificationQueueMessage {
 
     public NotificationQueueMessage(
             UUID notificationId,
-                                    String recipient,
-                                    String subject,
-                                    String body,
-                                    ProviderType provider,
-                                    String messageType,
-                                    Instant queuedAt) {
+            String tenantId,
+            String recipient,
+            String subject,
+            String body,
+            ProviderType provider,
+            String messageType,
+            Instant queuedAt) {
         this.notificationId = notificationId;
+        this.tenantId = tenantId;
         this.recipient = recipient;
         this.subject = subject;
         this.body = body;
@@ -42,6 +45,14 @@ public class NotificationQueueMessage {
 
     public void setNotificationId(UUID notificationId) {
         this.notificationId = notificationId;
+    }
+
+    public String getTenantId() {
+        return tenantId;
+    }
+
+    public void setTenantId(String tenantId) {
+        this.tenantId = tenantId;
     }
 
     public String getRecipient() {

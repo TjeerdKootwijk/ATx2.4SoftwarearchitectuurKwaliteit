@@ -41,13 +41,14 @@ public class SwiftSendProvider implements MessagingProvider {
                 log.info("SwiftSend message sent successfully");
                 return ProviderSendResult.send(message.getNotificationId().toString());
             } else {
-                log.warn("SwiftSend message failed to send");
-                return ProviderSendResult.error(message.getNotificationId().toString());
+                String errMsg = response != null ? response.getError() : "No response from SwiftSend";
+                log.warn("SwiftSend message failed to send: {}", errMsg);
+                return ProviderSendResult.error(message.getNotificationId().toString(), errMsg);
             }
 
         } catch (Exception e) {
             log.error("Error sending SwiftSend message to {}: {}", message.getRecipient(), e.getMessage(), e);
-            return ProviderSendResult.error(message.getNotificationId().toString());
+            return ProviderSendResult.error(message.getNotificationId().toString(), e.getMessage());
         }
     }
 }
