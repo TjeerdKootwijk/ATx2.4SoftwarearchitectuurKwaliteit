@@ -61,8 +61,10 @@ public class RabbitMQConsumer {
                 3 + 1,
                 message.getNotificationId());
         log.info("  Provider  : {}", message.getProvider());
-        log.info("  Recipient : {}", message.getRecipient());
-        log.info("  Subject   : {}", message.getSubject());
+        log.info("  Ontvanger : {}", message.getRecipient());
+        log.info("  Onderwerp : {}", message.getSubject());
+        log.info("  MessageType : {}", message.getMessageType());
+        log.info("  body : {}", message.getBody());
         log.info("------------------------------------------------");
 
         MessagingProvider provider = providerFactory.get(message.getProvider());

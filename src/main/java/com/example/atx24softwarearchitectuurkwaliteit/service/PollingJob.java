@@ -34,20 +34,23 @@ public class PollingJob {
     private final AppointmentMapper mapper;
     private final AppointmentEventConverter converter;
     private final AppointmentValidator validator;
-    private final AppointmentEventPublisher publisher;
+
+    private final IdempotencyService idempotencyService;
+
 
     public PollingJob(TenantService tenantService,
                       AppointmentFetcher fetcher,
                       AppointmentMapper mapper,
                       AppointmentEventConverter converter,
                       AppointmentValidator validator,
-                      AppointmentEventPublisher publisher) {
+                      IdempotencyService idempotencyService) {
         this.tenantService = tenantService;
         this.fetcher = fetcher;
         this.mapper = mapper;
         this.converter = converter;
         this.validator = validator;
-        this.publisher = publisher;
+        this.idempotencyService = idempotencyService;
+
     }
 
     @Scheduled(fixedDelay = 300000, initialDelay = 10000)
@@ -87,8 +90,9 @@ public class PollingJob {
                 // Stap 3: converteer FHIR Appointment → intern event
                 AppointmentChangedEvent event = converter.convert(fhirAppointment, tenantId);
 
-                // Stap 4: publiceer naar RabbitMQ (NFR 6 — queueing)
-                publisher.publish(event);
+                // Stap 4: publiceer naar RabbitMQ (NFR 6 — queueing) oud
+                // stap 4: stuurt data naar idempotency service new
+                idempotencyService.processAppointment(event);
                 published++;
 
             } catch (Exception e) {

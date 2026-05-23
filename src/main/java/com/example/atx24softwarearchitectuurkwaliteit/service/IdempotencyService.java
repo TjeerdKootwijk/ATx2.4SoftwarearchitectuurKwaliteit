@@ -1,11 +1,10 @@
 package com.example.atx24softwarearchitectuurkwaliteit.service;
 
+import com.example.atx24softwarearchitectuurkwaliteit.model.AppointmentChangedEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
-import javax.crypto.Mac;
-import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.UUID;
@@ -20,7 +19,7 @@ import java.util.UUID;
 @Service
 public class IdempotencyService {
 
-    private static final Logger logger = LoggerFactory.getLogger(IdempotencyService.class);
+    private static final Logger log = LoggerFactory.getLogger(IdempotencyService.class);
 
     private final DataService dataService;
 
@@ -29,8 +28,39 @@ public class IdempotencyService {
     }
 
     /**
+     * Combined idempotency check for an appointment event.
+     *
+     * Returns {@code true} if the event is new and should be processed.
+     * Returns {@code false} if the event was already seen — caller should skip it.
+     *
+     * When the event is new, it is immediately marked as processed so concurrent
+     * or future deliveries of the same event are rejected.
+     */
+    public boolean processAppointment(AppointmentChangedEvent event) {
+        String eventId = generateEventId(
+                event.getTenantId(),
+                event.getAppointmentId(),
+                event.getChangeType()
+        );
+
+        log.debug("Checking idempotency for appointment {} (eventId={})",
+                event.getAppointmentId(), eventId);
+
+        if (dataService.isEventProcessed(eventId)) {
+            log.info("Duplicate appointment skipped: {} (eventId={})",
+                    event.getAppointmentId(), eventId);
+            return false;
+        }
+
+        dataService.markEventAsProcessed(eventId);
+        log.info("New appointment accepted: {} (eventId={})",
+                event.getAppointmentId(), eventId);
+        return true;
+    }
+
+    /**
      * Returns true if this event ID was already recorded as processed.
-     * Used to skip re-delivery of the same appointment event.
+     * Used for direct event ID checks outside of an AppointmentChangedEvent context.
      */
     public boolean isEventProcessed(String eventId) {
         return dataService.isEventProcessed(eventId);
@@ -42,11 +72,11 @@ public class IdempotencyService {
     }
 
     /**
-     * Generates a deterministic SHA-256 event ID from tenant, appointment, and change type.
+     * Generates a SHA-256 event ID from tenant, appointment ID, and change type.
      * Falls back to a random UUID if hashing fails.
      */
     public String generateEventId(String tenantId, String appointmentId, String changeType) {
-        String input = String.format("%s:%s:%s:%d", tenantId, appointmentId, changeType, System.currentTimeMillis());
+        String input = String.format("%s:%s:%s", tenantId, appointmentId, changeType);
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
             byte[] hash = digest.digest(input.getBytes(StandardCharsets.UTF_8));
@@ -56,40 +86,8 @@ public class IdempotencyService {
             }
             return hexString.toString();
         } catch (Exception e) {
-            logger.error("Failed to generate event ID: {}", e.getMessage());
+            log.error("Failed to generate event ID for appointment {}: {}", appointmentId, e.getMessage());
             return UUID.randomUUID().toString();
         }
-    }
-
-    /** Computes an HMAC-SHA256 signature for webhook payload validation. */
-    private String computeHmac(String data, String secret) throws Exception {
-        Mac mac = Mac.getInstance("HmacSHA256");
-        SecretKeySpec secretKeySpec = new SecretKeySpec(
-                secret.getBytes(StandardCharsets.UTF_8),
-                0,
-                secret.getBytes(StandardCharsets.UTF_8).length,
-                "HmacSHA256"
-        );
-        mac.init(secretKeySpec);
-        byte[] hmacData = mac.doFinal(data.getBytes(StandardCharsets.UTF_8));
-
-        StringBuilder sb = new StringBuilder();
-        for (byte b : hmacData) {
-            sb.append(String.format("%02x", b));
-        }
-        return sb.toString();
-    }
-
-    /**
-     * Constant-time string comparison to prevent timing attacks
-     * when validating HMAC signatures.
-     */
-    private boolean constantTimeEquals(String a, String b) {
-        if (a.length() != b.length()) return false;
-        int result = 0;
-        for (int i = 0; i < a.length(); i++) {
-            result |= a.charAt(i) ^ b.charAt(i);
-        }
-        return result == 0;
     }
 }
