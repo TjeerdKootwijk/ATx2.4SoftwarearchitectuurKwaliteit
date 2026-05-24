@@ -25,9 +25,6 @@ public class AppointmentService {
 
     private final TenantService tenantService;
 
-    private final String notificationProvider;
-
-
     public AppointmentService(RabbitMQProducer rabbitMQProducer, TenantService tenantService) {
         this.rabbitMQProducer = rabbitMQProducer;
         this.tenantService = tenantService;
