@@ -95,6 +95,7 @@ public class PollingJob {
                 if (!idempotencyService.processAppointment(event)) {
                     continue;
                 }
+                log.info("--------------------------------------- tim eof appointment" + event.getAppointmentDateTime());
 
                 // Stap 5: AppointmentService berekent 24h/1h windows en publiceert naar RabbitMQ
                 appointmentService.handleAppointment(event);
@@ -105,8 +106,8 @@ public class PollingJob {
                 log.error("Error processing appointment for tenant {}: {}", tenantId, e.getMessage(), e);
             }
         }
+        log.info("Tenant {} → {} appointments send to appointmentService", tenantId, published);
 
-        log.info("Tenant {} → {} appointments published to queue", tenantId, published);
     }
 
     /**
