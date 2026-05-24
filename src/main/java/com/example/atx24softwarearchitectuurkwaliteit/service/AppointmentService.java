@@ -64,8 +64,8 @@ public class AppointmentService {
          * - within next 24–48h window (your rule is 24h reminder)
          */
 
-        Instant start24hWindow = appointmentInstant.minus(48, ChronoUnit.HOURS);
-        Instant end24hWindow = appointmentInstant.minus(24, ChronoUnit.HOURS);
+        Instant start24hWindow = appointmentInstant.minus(24, ChronoUnit.HOURS);
+        Instant end24hWindow = appointmentInstant.minus(23, ChronoUnit.HOURS);
 
         boolean in24hWindow = now.isAfter(start24hWindow) && now.isBefore(end24hWindow);
 
@@ -89,7 +89,9 @@ public class AppointmentService {
             log.info("Sent 24h reminder for appointment {}",
                     event.getAppointmentId());
         }
-
+        else{
+            log.info("Not in 24h window for appointment {} (now={}, appointmentTime={})",event.getAppointmentId(), now, appointmentInstant);
+        }
         /*
          * =========================
          * 1H WINDOW
@@ -124,6 +126,9 @@ public class AppointmentService {
 
             log.info("Sent 1h reminder for appointment {}",
                     event.getAppointmentId());
+        }
+        else{
+            log.info("Not in 1h window for appointment {} (now={}, appointmentTime={})",event.getAppointmentId(), now, appointmentInstant);
         }
     }
 }
