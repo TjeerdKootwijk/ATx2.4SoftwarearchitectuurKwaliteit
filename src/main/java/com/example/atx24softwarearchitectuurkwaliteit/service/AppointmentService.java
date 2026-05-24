@@ -4,6 +4,7 @@ import com.example.atx24softwarearchitectuurkwaliteit.messaging.queue.RabbitMQPr
 import com.example.atx24softwarearchitectuurkwaliteit.messaging.queue.dto.NotificationQueueMessage;
 import com.example.atx24softwarearchitectuurkwaliteit.model.AppointmentChangedEvent;
 import com.example.atx24softwarearchitectuurkwaliteit.model.TenantConfiguration;
+import com.example.atx24softwarearchitectuurkwaliteit.provider.ProviderType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -21,7 +22,11 @@ public class AppointmentService {
             LoggerFactory.getLogger(AppointmentService.class);
 
     private final RabbitMQProducer rabbitMQProducer;
+
     private final TenantService tenantService;
+
+    private final String notificationProvider;
+
 
     public AppointmentService(RabbitMQProducer rabbitMQProducer, TenantService tenantService) {
         this.rabbitMQProducer = rabbitMQProducer;
@@ -31,7 +36,9 @@ public class AppointmentService {
     public void handleAppointment(AppointmentChangedEvent event) {
 
         log.info("Handling appointment: {} | dateTime={} | changeType={}",
-                event.getAppointmentId(), event.getAppointmentDateTime(), event.getChangeType());
+                event.getAppointmentId(),
+                event.getAppointmentDateTime(),
+                event.getChangeType());
 
         // Zoek de provider op bij de juiste tenant — niet globaal uit env vars
         TenantConfiguration tenant = tenantService.getTenantConfiguration(event.getTenantId());
@@ -42,37 +49,33 @@ public class AppointmentService {
         log.debug("Using provider {} for tenant {}", notificationProvider, event.getTenantId());
 
         LocalDateTime appointmentTime = event.getAppointmentDateTime();
+
         Instant appointmentInstant = appointmentTime
                 .atZone(ZoneId.systemDefault())
                 .toInstant();
+
+        Instant now = Instant.now();
 
         String location = event.getLocation() != null
                 ? event.getLocation()
                 : "locatie onbekend";
 
-        Instant now = Instant.now();
-
         /*
          * =========================
-         * 24H REMINDER
+         * 24H WINDOW
          * =========================
+         *
+         * Only send if appointment is:
+         * - in the future
+         * - within next 24–48h window (your rule is 24h reminder)
          */
 
-        Instant reminder24h = appointmentTime
-                .minusHours(24)
-                .atZone(ZoneId.systemDefault())
-                .toInstant();
+        Instant start24hWindow = appointmentInstant.minus(24, ChronoUnit.HOURS);
+        Instant end24hWindow = appointmentInstant.minus(23, ChronoUnit.HOURS);
 
-        Instant cutoff24h = appointmentTime
-                .minusHours(23)   // 🔥 grace window (1 hour late allowed)
-                .atZone(ZoneId.systemDefault())
-                .toInstant();
+        boolean in24hWindow = now.isAfter(start24hWindow) && now.isBefore(end24hWindow);
 
-        if (now.isBefore(cutoff24h)) {
-
-            String body24h =
-                    "U heeft over 24 uur een afspraak op " + location +
-                            " om " + appointmentTime + ".";
+        if (in24hWindow) {
 
             NotificationQueueMessage notification24h =
                     new NotificationQueueMessage(
@@ -80,40 +83,37 @@ public class AppointmentService {
                             event.getTenantId(),
                             "06 123456",
                             "Afspraak herinnering",
-                            body24h,
+                            "U heeft over 24 uur een afspraak op " + location +
+                                    " om " + appointmentTime + ".",
                             notificationProvider,
                             "APPOINTMENT_REMINDER_24H",
-                            reminder24h
+                            Instant.now()
                     );
 
             rabbitMQProducer.publish(notification24h);
 
-            log.info("Queued 24h reminder for appointment {}", event.getAppointmentId());
-
-        } else {
-            log.info("24h reminder skipped — appointment not far enough in future | appointment={} | now={} | cutoff24h={}",
-                    event.getAppointmentId(), now, cutoff24h);
+            log.info("Sent 24h reminder for appointment {}",
+                    event.getAppointmentId());
         }
-
+        else{
+            log.info("Not in 24h window for appointment {} (now={}, appointmentTime={})",event.getAppointmentId(), now, appointmentInstant);
+        }
         /*
          * =========================
-         * 1H REMINDER
+         * 1H WINDOW
          * =========================
+         *
+         * Only send if appointment is:
+         * - in the future
+         * - within last 1 hour before appointment
          */
 
-        Instant reminder1h = appointmentTime
-                .minusHours(1)
-                .atZone(ZoneId.systemDefault())
-                .toInstant();
+        Instant start1hWindow = appointmentInstant.minus(1, ChronoUnit.HOURS);
 
-        Instant cutoff1h     = appointmentInstant;                   // uiterste grens: afspraak mag nog niet begonnen zijn
-        Instant window1hMax  = now.plus(12, ChronoUnit.HOURS);      // bovengrens: afspraak moet binnen 12 uur zijn
+        boolean in1hWindow = now.isAfter(start1hWindow)
+                && now.isBefore(appointmentInstant);
 
-        if (now.isBefore(cutoff1h) && appointmentInstant.isBefore(window1hMax)) {
-
-            String body1h =
-                    "U heeft over 1 uur een afspraak op " + location +
-                            " om " + appointmentTime + ".";
+        if (in1hWindow) {
 
             NotificationQueueMessage notification1h =
                     new NotificationQueueMessage(
@@ -121,19 +121,20 @@ public class AppointmentService {
                             event.getTenantId(),
                             "06 123456",
                             "Afspraak herinnering",
-                            body1h,
+                            "U heeft over 1 uur een afspraak op " + location +
+                                    " om " + appointmentTime + ".",
                             notificationProvider,
                             "APPOINTMENT_REMINDER_1H",
-                            reminder1h
+                            Instant.now()
                     );
 
             rabbitMQProducer.publish(notification1h);
 
-            log.info("Queued 1h reminder for appointment {}", event.getAppointmentId());
-
-        } else {
-            log.info("1h reminder skipped — appointment already started or passed | appointment={} | now={} | cutoff1h={}",
-                    event.getAppointmentId(), now, cutoff1h);
+            log.info("Sent 1h reminder for appointment {}",
+                    event.getAppointmentId());
+        }
+        else{
+            log.info("Not in 1h window for appointment {} (now={}, appointmentTime={})",event.getAppointmentId(), now, appointmentInstant);
         }
     }
 }

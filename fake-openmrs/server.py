@@ -46,26 +46,41 @@ HOURS_24H = int(os.environ.get("FAKE_APPOINTMENT_HOURS_24H", 25))
 
 
 def build_appointments():
-    """Genereer nep-afspraken: een groep voor 1h-reminders en een groep voor 24h-reminders."""
     results = []
-    index   = 1
+    index = 1
+    now = datetime.now(timezone.utc)
 
-    # Groep 1: afspraken voor de 1h-reminder (binnen 1-12 uur)
-    for i in range(COUNT_1H):
-        start = datetime.now(timezone.utc) + timedelta(hours=HOURS_1H + i)
-        end   = start + timedelta(minutes=30)
-        results.append(_make_appointment(index, start, end, "1h"))
-        index += 1
+    # -------------------------
+    # 24H WINDOW TEST DATA
+    # window: -24h → -22h
+    # we target middle: -23h
+    # -------------------------
+    base_24h = now + timedelta(hours=23)
 
-    # Groep 2: afspraken voor de 24h-reminder (24-48 uur van nu)
     for i in range(COUNT_24H):
-        start = datetime.now(timezone.utc) + timedelta(hours=HOURS_24H + i)
-        end   = start + timedelta(minutes=30)
+        jitter = timedelta(minutes=i * 10)  # small variation
+        start = base_24h + jitter
+        end = start + timedelta(minutes=30)
+
         results.append(_make_appointment(index, start, end, "24h"))
         index += 1
 
-    return results
+    # -------------------------
+    # 1H WINDOW TEST DATA
+    # window: -1h → 0h
+    # we target middle: -30min
+    # -------------------------
+    base_1h = now + timedelta(minutes=30)
 
+    for i in range(COUNT_1H):
+        jitter = timedelta(minutes=i * 5)  # small variation
+        start = base_1h + jitter
+        end = start + timedelta(minutes=30)
+
+        results.append(_make_appointment(index, start, end, "1h"))
+        index += 1
+
+    return results
 
 def _make_appointment(index, start, end, group):
     return {
