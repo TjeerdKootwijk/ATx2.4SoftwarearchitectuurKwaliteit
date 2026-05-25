@@ -4,63 +4,66 @@ date: 2026-05-06
 deciders: Groep C1
 ---
 
-# AD: Webhook-ontvangst met asynchrone verwerking en fallback naar REST polling
+# AD: Asynchrone verwerking van gepolde afspraken via RabbitMQ
 
 ## Context and Problem Statement
 
-De communicatiemodule moet afspraakwijzigingen van OpenMRS ontvangen om op het juiste moment notificaties te versturen (24 uur en 1 uur voor de afspraak). In ADR-3 is vastgesteld dat webhooks het primaire integratiepad zijn, met een fallback naar REST API polling. Dit ADR legt vast hoe dat mechanisme concreet wordt geïmplementeerd: hoe de webhook-ontvanger is opgezet, hoe de fallback wordt getriggerd, en hoe voorkomen wordt dat een event dubbel wordt verwerkt wanneer zowel de webhook als de polling hetzelfde event aanleveren.
+In ADR-3 is vastgesteld dat de communicatiemodule afspraakdata ophaalt via periodieke REST API polling (elke minuut per tenant). Dit ADR legt vast hoe de gepolde afspraken vervolgens worden verwerkt: hoe de `PollingJob` afspraken doorzet naar de verwerkingslaag, hoe voorkomen wordt dat dezelfde afspraak dubbel wordt verwerkt bij opeenvolgende polls, en hoe notificatieverzending ontkoppeld blijft van de polling-cyclus.
 
 ## Decision Drivers
 
-* **Beschikbaarheid van OpenMRS**: OpenMRS mag geen blokkerende time-outs ervaren door trage verwerking van notificaties.
-* **Betrouwbaarheid**: Geen enkel afspraakevent mag verloren gaan, ook niet bij tijdelijke downtime van de communicatiemodule.
-* **Idempotency**: Wanneer een event via twee paden binnenkomt (webhook én polling), mag er slechts één notificatie worden verstuurd.
-* **Multitenancy**: De fallback-polling moet per tenant afzonderlijk worden bijgehouden, zodat organisaties elkaar niet beïnvloeden.
-* **Onderhoudbaarheid**: De ontvangstlaag moet onafhankelijk zijn van de verwerkingslaag, zodat nieuwe providers of verwerkingsstappen kunnen worden toegevoegd zonder de webhook-controller te wijzigen.
+* **Ontkoppeling**: De polling-cyclus mag niet worden geblokkeerd door trage providers of lange verwerkingstijden.
+* **Betrouwbaarheid**: Geen enkel afspraakevent mag verloren gaan bij tijdelijke storingen in de verwerkingslaag.
+* **Idempotency**: Dezelfde afspraak wordt elke poll-ronde opnieuw gezien; er mag slechts één notificatie per afspraak per tijdvenster worden verstuurd.
+* **Multitenancy**: Polling en verwerking moeten per tenant gescheiden zijn zodat organisaties elkaar niet beïnvloeden.
+* **Onderhoudbaarheid**: De verwerkingslaag moet onafhankelijk zijn van de polling-laag, zodat nieuwe providers of verwerkingsstappen kunnen worden toegevoegd zonder de `PollingJob` te wijzigen.
 
 ## Considered Options
 
-1. **Synchrone verwerking in de webhook-handler** — De controller verwerkt en verzendt de notificatie direct binnen dezelfde HTTP-aanroep, zonder queue.
-2. **Asynchrone ontvangst via RabbitMQ + periodieke polling als fallback** — De controller plaatst het event op een queue en retourneert direct `202 Accepted`. Een aparte `PollingJob` haalt periodiek gemiste events op via de OpenMRS REST API.
-3. **Alleen polling, geen webhooks** — De module polt continu de OpenMRS REST API, zonder gebruik te maken van webhooks.
+1. **Asynchrone verwerking via RabbitMQ** — De `PollingJob` publiceert nieuwe afspraken als events naar een RabbitMQ-queue. Een aparte `NotificationConsumer` verwerkt de events asynchroon, inclusief retry en dead-letter-afhandeling.
+2. **Synchrone verwerking direct in de PollingJob** — De job verwerkt en verzendt de notificatie direct binnen dezelfde poll-iteratie, zonder queue.
+3. **Database-driven scheduling** — De job slaat gepolde afspraken op in de database; een aparte scheduler-thread leest de tabel en verstuurt notificaties op het juiste moment.
 
 ## Decision Outcome
 
-Gekozen optie: **Optie 2 — Asynchrone ontvangst via RabbitMQ met periodieke REST-polling als fallback**, omdat dit de beschikbaarheid van OpenMRS volledig ontziet, betrouwbare event-ontvangst garandeert ook bij tijdelijke uitval, en de ontvangstlaag volledig ontkoppelt van de verwerkingslaag.
+Gekozen optie: **Optie 1 — Asynchrone verwerking via RabbitMQ**, omdat dit de polling-cyclus volledig ontkoppelt van de verzendlaag, betrouwbare retry-afhandeling biedt via een dead-letter queue, en de verwerkingslaag onafhankelijk uitbreidbaar maakt.
 
-### Hoe werkt het webhook-pad?
+### Hoe werkt de polling-verwerking?
 
-Een OpenMRS-instantie stuurt een `POST /api/events/appointment` naar de communicatiemodule bij elke afspraakwijziging. De `WebhookController` valideert de HMAC-SHA256-handtekening, bouwt een `AppointmentChangedEvent` (fat event met alle benodigde velden), voert een idempotency-check uit op `eventId`, publiceert het event naar de RabbitMQ `appointment.events` exchange, en retourneert direct `202 Accepted` — zonder te wachten op verwerking of verzending.
+De `PollingJob` draait via `@Scheduled` elke minuut. Per actieve tenant roept hij de OpenMRS REST API aan met een `lastUpdated`-filter op basis van de `lastPolledAt`-timestamp die per tenant in PostgreSQL wordt bijgehouden. Voor elk ontvangen afspraakinzicht:
 
-### Hoe werkt de fallback-polling?
-
-Een `PollingJob` draait via `@Scheduled` elke vijf minuten. Per actieve tenant roept hij de OpenMRS REST API aan met een `since`-parameter op basis van de `lastPolledAt`-timestamp die per tenant in PostgreSQL wordt bijgehouden. Ontvangen events worden langs dezelfde idempotency-check geleid als webhooks. Nieuwe events worden gepubliceerd naar RabbitMQ; events die al via het webhookpad zijn binnengekomen worden stilzwijgend overgeslagen. Na een succesvolle poll-ronde wordt de `lastPolledAt`-timestamp per tenant bijgewerkt.
+1. De `IdempotencyService` controleert of het event al eerder is verwerkt via een atomische `INSERT INTO processed_events (event_id)`. Bij een `DuplicateKeyException` wordt het event stilzwijgend overgeslagen.
+2. Nieuwe events worden gepubliceerd naar de RabbitMQ `appointment.events` exchange als `NotificationQueueMessage`.
+3. Na een succesvolle poll-ronde wordt `lastPolledAt` per tenant bijgewerkt in PostgreSQL.
 
 ### Hoe werkt de idempotency?
 
-Elk `AppointmentChangedEvent` heeft een unieke `eventId`. De `IdempotencyService` voert een atomische `INSERT INTO processed_events (event_id) VALUES (?)` uit. Bij een `DuplicateKeyException` is het event al eerder verwerkt en wordt het overgeslagen. Dit werkt correct bij meerdere gelijktijdige instanties van de module, omdat de database de serialisatie afhandelt. Events worden maximaal 30 dagen bewaard in de `processed_events`-tabel; daarna kunnen ze worden opgeschoond.
+Elk gepold afspraakinzicht krijgt een unieke `eventId` (samengesteld uit `appointmentId` + `lastModified`-timestamp). De `IdempotencyService` voert een atomische insert uit. Omdat de database de serialisatie afhandelt, werkt dit ook correct bij meerdere gelijktijdige instanties van de module. Events worden maximaal 30 dagen bewaard in de `processed_events`-tabel en daarna opgeschoond.
+
+### Hoe werkt de asynchrone verwerking?
+
+De `NotificationConsumer` leest van de RabbitMQ-queue en verwerkt elk event onafhankelijk van de polling-cyclus. Bij een fout (bijv. provider onbereikbaar) past de consumer exponentiële backoff toe (5s → 30s → 2m → 5m → 10m); na het maximum aantal pogingen wordt het event doorgestuurd naar `queue.dlq` voor handmatige inspectie.
 
 ### Consequences
 
 **Good:**
-- OpenMRS ontvangt altijd een directe `202 Accepted` zonder te wachten op verwerking of verzending.
-- Gemiste webhooks — door tijdelijke downtime van de module of netwerkstoringen — worden automatisch opgepikt door de polling-fallback.
-- De idempotency-laag garandeert dat patiënten nooit twee notificaties ontvangen voor dezelfde afspraakwijziging, ongeacht via welk pad het event binnenkomt.
-- De webhook-controller en polling-job zijn volledig ontkoppeld van de verwerkingslaag; nieuwe consumers kunnen worden toegevoegd zonder deze componenten te wijzigen.
-- De `lastPolledAt`-timestamp per tenant maakt de polling efficiënt: er wordt alleen gevraagd naar wijzigingen die de module nog niet heeft gezien.
-- Bij de eerste koppeling van een nieuwe tenant polt de job eenmalig de volledige afsprakenhistorie, waarna het webhook-pad overneemt.
+- De `PollingJob` is lichtgewicht en snel: hij haalt data op en publiceert naar de queue zonder te wachten op verzending.
+- Trage of falende providers blokkeren de polling-cyclus niet.
+- De idempotency-laag garandeert dat patiënten nooit twee notificaties ontvangen voor dezelfde afspraak, ook niet bij herhaalde polls.
+- De `NotificationConsumer` en polling-job zijn volledig ontkoppeld; nieuwe consumers of providers kunnen worden toegevoegd zonder de `PollingJob` te wijzigen.
+- De `lastPolledAt`-timestamp per tenant maakt polling efficiënt: alleen wijzigingen sinds de vorige poll worden opgehaald.
+- Bij eerste koppeling van een nieuwe tenant wordt een initiële volledige synchronisatie uitgevoerd vanaf een configureerbare startdatum.
 
 **Bad:**
-- De polling-interval (standaard vijf minuten) bepaalt de maximale vertraging bij een gemist webhook-event. Dit is acceptabel voor notificaties die 24 uur en 1 uur voor de afspraak worden verstuurd.
-- De `PollingJob` belast de OpenMRS REST API periodiek. Bij een groot aantal tenants moet het interval worden afgestemd op de capaciteit van OpenMRS-instanties.
+- De polling-interval (standaard 60 seconden) bepaalt de maximale vertraging waarmee een afspraakwijziging de notificatiequeue bereikt. Dit is acceptabel voor notificaties die 24 uur en 1 uur van tevoren worden verstuurd.
+- De `PollingJob` belast de OpenMRS REST API periodiek. Bij een groot aantal tenants moeten polling-intervals zorgvuldig worden afgestemd; jitter wordt toegepast om gelijktijdige requests te spreiden.
 - Idempotency vereist een persistente `processed_events`-tabel en expliciete opschoning na de retentieperiode.
-- De HMAC-handtekeningvalidatie vereist dat per tenant een gedeeld secret veilig wordt opgeslagen (via HashiCorp Vault) en geconfigureerd in OpenMRS.
 
 ## More Information
 
-* De `AppointmentChangedEvent` is een fat event: het bevat `appointmentId`, `patientId`, `scheduledTime`, `organizationId`, `location` en `instructions`, zodat downstream consumers geen extra synchrone call naar OpenMRS hoeven te doen.
-* Retry-beleid voor de `NotificationConsumer`: 5 pogingen met exponentiële backoff (5s → 30s → 2m → 5m → 10m via `SimpleRetryPolicy`); daarna doorsturen naar `queue.dlq` voor handmatige inspectie.
-* De polling-interval is configureerbaar via `polling.interval-ms` in `application.yml` (standaard: 300000 ms).
+* De `NotificationQueueMessage` is een fat event: het bevat `appointmentId`, `patientId`, `scheduledTime`, `organizationId`, `location` en `instructions`, zodat de consumer geen extra synchrone call naar OpenMRS hoeft te doen.
+* Retry-beleid voor de `NotificationConsumer`: 5 pogingen met exponentiële backoff; daarna doorsturen naar `queue.dlq`.
+* De polling-interval is configureerbaar via `polling.interval-ms` in `application.yml` (standaard: 60000 ms).
+* Jitter wordt toegepast per tenant zodat poll-requests niet gelijktijdig plaatsvinden.
 * De `processed_events`-tabel wordt geïndexeerd op `processed_at` voor efficiënte opschoning; retentievenster is 30 dagen.
-* Een follow-up ADR over de `NotificationConsumer` en de provider-abstractielaag (Strategy-patroon voor SwiftSend, LegacyLink, AsyncFlow en SecurePost) is gewenst vóór productie-deployment.
-* Zie ook ADR-3 (integratiemethode), ADR-2 (technologiestack) en ADR-LES-MARK-ABSTRACTIE (messaging-strategie) voor de besluiten waarop dit ADR voortbouwt.
+* Zie ADR-3 (polling als integratiemethode), ADR-2 (technologiestack) en ADR-8 (provider-factory) voor de besluiten waarop dit ADR voortbouwt.
