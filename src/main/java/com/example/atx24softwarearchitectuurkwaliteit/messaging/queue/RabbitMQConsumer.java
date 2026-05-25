@@ -4,6 +4,7 @@ import com.example.atx24softwarearchitectuurkwaliteit.config.RabbitMQConfig;
 import com.example.atx24softwarearchitectuurkwaliteit.messaging.queue.dto.NotificationQueueMessage;
 import com.example.atx24softwarearchitectuurkwaliteit.messaging.retry.RetryContext;
 import com.example.atx24softwarearchitectuurkwaliteit.messaging.retry.RetryHandler;
+import com.example.atx24softwarearchitectuurkwaliteit.messaging.retry.RetryPolicy;
 import com.example.atx24softwarearchitectuurkwaliteit.provider.MessagingProvider;
 import com.example.atx24softwarearchitectuurkwaliteit.provider.MessagingProviderFactory;
 import com.example.atx24softwarearchitectuurkwaliteit.provider.ProviderSendResult;
@@ -35,17 +36,20 @@ public class RabbitMQConsumer {
     private final MessagingProviderFactory providerFactory;
     private final MeterRegistry meterRegistry;
     private final RetryHandler retryHandler;
+    private final RetryPolicy retryPolicy;
     private final Jackson2JsonMessageConverter messageConverter;
     private final DataService dataService;
 
     public RabbitMQConsumer(MessagingProviderFactory providerFactory,
                             MeterRegistry meterRegistry,
                             RetryHandler retryHandler,
+                            RetryPolicy retryPolicy,
                             Jackson2JsonMessageConverter messageConverter,
                             DataService dataService) {
         this.providerFactory = providerFactory;
         this.meterRegistry = meterRegistry;
         this.retryHandler = retryHandler;
+        this.retryPolicy = retryPolicy;
         this.messageConverter = messageConverter;
         this.dataService = dataService;
     }
@@ -57,8 +61,8 @@ public class RabbitMQConsumer {
 
         log.info("------------------------------------------------");
         log.info("Notification received | attempt={}/{} | id={}",
-                context.retryCount() == 0 ? "1" : context.retryCount() + 1,
-                3 + 1,
+                context.retryCount() + 1,
+                retryPolicy.getMaxRetries() + 1,
                 message.getNotificationId());
         log.info("  Provider    : {}", message.getProvider());
         log.info("  MessageType : {}", message.getMessageType());

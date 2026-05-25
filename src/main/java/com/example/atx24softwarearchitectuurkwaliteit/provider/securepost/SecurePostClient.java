@@ -37,15 +37,12 @@ public class SecurePostClient {
 
     public SecurePostResponse send(SecurePostRequest request) {
         log.info("Sending SecurePost request to: {}/securepost/message", baseUrl);
-        log.debug("Request body: {}", request);
 
         String token = getValidToken();
         if (token == null) {
             log.error("Could not obtain SecurePost JWT token");
             return null;
         }
-
-        log.debug("X-STUDENT-GROUP: {}", studentGroup);
 
         return webClient.post()
             .uri("/securepost/message")
