@@ -8,8 +8,7 @@ Een SaaS communicatiemodule die afspraaknotificaties verstuurt namens OpenMRS-or
 
 De module pollt periodiek de OpenMRS REST API per tenant, verwerkt afspraakwijzigingen asynchroon via RabbitMQ, en verstuurt notificaties 24 uur en 1 uur voor een afspraak via de geconfigureerde messaging provider.
 
-<!-- Vervang de onderstaande afbeelding met jouw flow diagram screenshot -->
-![Flow diagram](docs/flow-diagram.png)
+<img width="1924" height="519" alt="Mind Map (13)" src="https://github.com/user-attachments/assets/0ed7541c-2d9c-4a52-bfc5-04e521ba247d" />
 
 ---
 
@@ -19,7 +18,7 @@ Vereisten: Docker en Docker Compose.
 
 **Stap 1: Maak het configuratiebestand aan**
 
-Kopieer het voorbeeldbestand en vul de lege waarden in:
+Kopieer het `.env.example` naar `.env` en vul de lege waarden in:
 
 ```bash
 cp .env.example .env
@@ -81,9 +80,8 @@ Dit laat zien hoe de module reageert wanneer hij draait en afspraken verwerkt.
 ```bash
 curl http://localhost:8080/actuator/health
 ```
+<img width="2560" height="785" alt="image" src="https://github.com/user-attachments/assets/f43b326b-bc0f-40aa-ae23-bced95aab23a" />
 
-<!-- Voeg hier een screenshot toe van de health check response in de browser of terminal -->
-![Health check response](docs/screenshot-health.png)
 
 **2. Afspraak aanmaken via het testscript**
 
@@ -91,8 +89,8 @@ curl http://localhost:8080/actuator/health
 python Scripts/create_patient_and_appointment.py
 ```
 
-<!-- Voeg hier een screenshot toe van de terminal output van het script (patient_uuid + appointment_uuid) -->
-![Script output](docs/screenshot-script-output.png)
+<img width="636" height="273" alt="image" src="https://github.com/user-attachments/assets/30b8d00a-ed26-4f66-bfd6-d7016beb46d2" />
+
 
 **3. Communicatiemodule pikt de afspraak op (applicatielogs)**
 
@@ -100,13 +98,13 @@ python Scripts/create_patient_and_appointment.py
 docker-compose logs -f app
 ```
 
-<!-- Voeg hier een screenshot toe van de logs waaruit blijkt dat de polling job de afspraak heeft opgepikt en een notificatie heeft ingepland -->
-![Applicatielogs](docs/screenshot-logs.png)
+<img width="1910" height="988" alt="image" src="https://github.com/user-attachments/assets/78efda30-2a57-441a-8a21-8cc02d4b2fd7" />
+
 
 **4. Notificatie zichtbaar in Grafana**
 
-<!-- Voeg hier een screenshot toe van het Grafana dashboard waarop de verzonden notificatie zichtbaar is -->
-![Grafana notificatie](docs/screenshot-grafana.png)
+<img width="2560" height="1299" alt="image" src="https://github.com/user-attachments/assets/a6bf5133-39c7-418d-94bd-0f2059104b50" />
+
 
 ---
 
@@ -125,8 +123,7 @@ Zie [grafana/README.md](grafana/README.md) voor uitleg over het dashboard.
 
 ## Applicatiearchitectuur
 
-<!-- Vervang de onderstaande afbeelding met jouw C4 architectuurdiagram -->
-![Architectuurdiagram](docs/architecture.png)
+<img width="1017" height="982" alt="Mind Map (14)" src="https://github.com/user-attachments/assets/b98f2d6a-3a5a-4528-81e4-831900aa49f6" />
 
 De module bestaat uit de volgende onderdelen:
 
@@ -137,23 +134,6 @@ De module bestaat uit de volgende onderdelen:
 | `NotificationConsumer` | Leest van de RabbitMQ queue en plant notificaties in |
 | `NotificationScheduler` | Verstuurt notificaties op het juiste moment via de provider |
 | `ProviderFactory` | Selecteert de juiste messaging provider per tenant |
-
-```
-OpenMRS (per tenant)
-       |
-       | REST API polling (elke minuut)
-       v
-  PollingJob
-       |
-       v
-  RabbitMQ queue
-       |
-       v
-NotificationConsumer
-       |
-       v
-NotificationScheduler --> Messaging Provider (SwiftSend / LegacyLink / AsyncFlow / SecurePost)
-```
 
 ---
 
