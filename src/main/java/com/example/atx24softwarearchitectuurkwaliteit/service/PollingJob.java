@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
+import java.time.DateTimeException;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -71,12 +72,13 @@ public class PollingJob {
 
     private void processTenant(TenantConfiguration tenant) {
         String tenantId = tenant.getTenantId();
-        LocalDateTime now = LocalDateTime.now();
+        ZoneId tenantZone = resolveZone(tenant);
+        LocalDateTime now = LocalDateTime.now(tenantZone);
         int published = 0;
 
         for (JsonNode node : fetcher.fetchAppointments(tenant)) {
             try {
-                if (!isWithinNotificationWindow(node, now)) continue;
+                if (!isWithinNotificationWindow(node, now, tenantZone)) continue;
 
                 // Stap 1: map OpenMRS JSON → FHIR R4 Appointment (intern, NFR 6 — berichttransformatie)
                 Appointment fhirAppointment = mapper.map(node);
@@ -88,8 +90,8 @@ public class PollingJob {
                     continue;
                 }
 
-                // Stap 3: converteer FHIR Appointment → intern event
-                AppointmentChangedEvent event = converter.convert(fhirAppointment, tenantId);
+                // Stap 3: converteer FHIR Appointment → intern event (NFR13: tenant timezone meegeven)
+                AppointmentChangedEvent event = converter.convert(fhirAppointment, tenantId, tenantZone);
 
                 // Stap 4: idempotency check — skip als dit event al eerder verwerkt is
                 if (!idempotencyService.processAppointment(event)) {
@@ -113,15 +115,26 @@ public class PollingJob {
     /**
      * Filter: alleen afspraken die nog niet begonnen zijn en binnen 7 dagen plaatsvinden.
      * Afspraken die al zijn aangevangen krijgen geen notificatie (functionele eis 1).
+     * NFR13: vergelijking vindt plaats in de lokale timezone van de tenant.
      */
-    private boolean isWithinNotificationWindow(JsonNode node, LocalDateTime now) {
+    private boolean isWithinNotificationWindow(JsonNode node, LocalDateTime now, ZoneId tenantZone) {
         long startMillis = node.path("startDateTime").asLong(0);
         if (startMillis == 0) return false;
 
         LocalDateTime appointmentTime = Instant.ofEpochMilli(startMillis)
-                .atZone(ZoneId.systemDefault())
+                .atZone(tenantZone)
                 .toLocalDateTime();
 
         return appointmentTime.isAfter(now) && appointmentTime.isBefore(now.plusDays(7));
+    }
+
+    private ZoneId resolveZone(TenantConfiguration tenant) {
+        try {
+            return ZoneId.of(tenant.getTimezone());
+        } catch (DateTimeException e) {
+            log.warn("Invalid timezone '{}' for tenant {} — falling back to UTC",
+                    tenant.getTimezone(), tenant.getTenantId());
+            return ZoneId.of("UTC");
+        }
     }
 }

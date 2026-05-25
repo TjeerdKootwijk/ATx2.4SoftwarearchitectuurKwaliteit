@@ -74,7 +74,7 @@ public class FhirR4AppointmentMapper implements AppointmentMapper, AppointmentEv
     // ── AppointmentEventConverter ──────────────────────────────────────────────
 
     @Override
-    public AppointmentChangedEvent convert(Appointment appointment, String tenantId) {
+    public AppointmentChangedEvent convert(Appointment appointment, String tenantId, ZoneId tenantZone) {
         AppointmentChangedEvent event = new AppointmentChangedEvent();
 
         // Deterministisch event-ID: zelfde afspraak + status = zelfde ID (idempotency)
@@ -87,6 +87,7 @@ public class FhirR4AppointmentMapper implements AppointmentMapper, AppointmentEv
         event.setAppointmentUuid(appointment.getId());
         event.setSource("POLLING");
         event.setReceivedAt(LocalDateTime.now());
+        event.setTimezone(tenantZone.getId());
 
         if (appointment.getStatus() != null) {
             event.setStatus(appointment.getStatus().toCode());
@@ -94,9 +95,10 @@ public class FhirR4AppointmentMapper implements AppointmentMapper, AppointmentEv
         }
 
         if (appointment.getStart() != null) {
+            // NFR13: convert UTC epoch to LocalDateTime in the tenant's local timezone
             event.setAppointmentDateTime(
                     appointment.getStart().toInstant()
-                            .atZone(ZoneId.systemDefault())
+                            .atZone(tenantZone)
                             .toLocalDateTime());
         }
 

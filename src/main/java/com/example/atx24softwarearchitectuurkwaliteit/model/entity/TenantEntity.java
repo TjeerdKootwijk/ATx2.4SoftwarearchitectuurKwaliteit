@@ -44,6 +44,10 @@ public class TenantEntity {
     @Column(name = "provider_secret", length = 512)
     private String providerSecret;
 
+    // NFR13: IANA timezone ID (e.g. "Europe/Amsterdam") for per-tenant notification timing
+    @Column(name = "timezone", nullable = false, length = 64)
+    private String timezone = "UTC";
+
     @Column(name = "last_polled_at")
     private LocalDateTime lastPolledAt;
 
@@ -93,6 +97,9 @@ public class TenantEntity {
 
     public String getProviderSecret() { return providerSecret; }
     public void setProviderSecret(String providerSecret) { this.providerSecret = providerSecret; }
+
+    public String getTimezone() { return timezone; }
+    public void setTimezone(String timezone) { this.timezone = timezone; }
 
     public LocalDateTime getLastPolledAt() { return lastPolledAt; }
     public void setLastPolledAt(LocalDateTime lastPolledAt) { this.lastPolledAt = lastPolledAt; }

@@ -45,7 +45,7 @@ public class AppointmentService {
         LocalDateTime appointmentTime = event.getAppointmentDateTime();
 
         Instant appointmentInstant = appointmentTime
-                .atZone(ZoneId.systemDefault())
+                .atZone(ZoneId.of(event.getTimezone()))
                 .toInstant();
 
         Instant now = Instant.now();

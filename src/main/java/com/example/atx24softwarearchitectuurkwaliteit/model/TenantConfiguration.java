@@ -10,6 +10,7 @@ public class TenantConfiguration {
     private String notificationProvider; // SMS, EMAIL, PUSH, etc.
     private String providerApiKey;
     private String providerSecret;
+    private String timezone = "UTC"; // IANA timezone ID, e.g. "Europe/Amsterdam"
 
     public TenantConfiguration() {}
 
@@ -90,5 +91,13 @@ public class TenantConfiguration {
 
     public void setProviderSecret(String providerSecret) {
         this.providerSecret = providerSecret;
+    }
+
+    public String getTimezone() {
+        return timezone;
+    }
+
+    public void setTimezone(String timezone) {
+        this.timezone = (timezone != null && !timezone.isBlank()) ? timezone : "UTC";
     }
 }

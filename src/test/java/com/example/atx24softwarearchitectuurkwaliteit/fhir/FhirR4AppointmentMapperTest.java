@@ -8,6 +8,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
+import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -168,8 +169,8 @@ class FhirR4AppointmentMapperTest {
                 Instant.now().plus(2, ChronoUnit.HOURS));
         Appointment appointment = mapper.map(node);
 
-        AppointmentChangedEvent event1 = mapper.convert(appointment, "tenant-a");
-        AppointmentChangedEvent event2 = mapper.convert(appointment, "tenant-a");
+        AppointmentChangedEvent event1 = mapper.convert(appointment, "tenant-a", ZoneId.of("UTC"));
+        AppointmentChangedEvent event2 = mapper.convert(appointment, "tenant-a", ZoneId.of("UTC"));
 
         assertThat(event1.getEventId()).isEqualTo(event2.getEventId());
     }
@@ -180,8 +181,8 @@ class FhirR4AppointmentMapperTest {
                 Instant.now().plus(2, ChronoUnit.HOURS));
         Appointment appointment = mapper.map(node);
 
-        AppointmentChangedEvent event1 = mapper.convert(appointment, "tenant-a");
-        AppointmentChangedEvent event2 = mapper.convert(appointment, "tenant-b");
+        AppointmentChangedEvent event1 = mapper.convert(appointment, "tenant-a", ZoneId.of("UTC"));
+        AppointmentChangedEvent event2 = mapper.convert(appointment, "tenant-b", ZoneId.of("UTC"));
 
         assertThat(event1.getEventId()).isNotEqualTo(event2.getEventId());
     }
@@ -192,7 +193,7 @@ class FhirR4AppointmentMapperTest {
                 Instant.now().plus(2, ChronoUnit.HOURS));
         Appointment appointment = mapper.map(node);
 
-        AppointmentChangedEvent event = mapper.convert(appointment, "mijn-tenant");
+        AppointmentChangedEvent event = mapper.convert(appointment, "mijn-tenant", ZoneId.of("UTC"));
 
         assertThat(event.getTenantId()).isEqualTo("mijn-tenant");
     }
@@ -203,7 +204,7 @@ class FhirR4AppointmentMapperTest {
                 Instant.now().plus(2, ChronoUnit.HOURS));
         Appointment appointment = mapper.map(node);
 
-        AppointmentChangedEvent event = mapper.convert(appointment, "tenant");
+        AppointmentChangedEvent event = mapper.convert(appointment, "tenant", ZoneId.of("UTC"));
 
         assertThat(event.getAppointmentUuid()).isEqualTo("uuid-014");
     }
@@ -214,7 +215,7 @@ class FhirR4AppointmentMapperTest {
                 Instant.now().plus(2, ChronoUnit.HOURS));
         Appointment appointment = mapper.map(node);
 
-        AppointmentChangedEvent event = mapper.convert(appointment, "tenant");
+        AppointmentChangedEvent event = mapper.convert(appointment, "tenant", ZoneId.of("UTC"));
 
         assertThat(event.getSource()).isEqualTo("POLLING");
     }
@@ -225,7 +226,7 @@ class FhirR4AppointmentMapperTest {
                 Instant.now().plus(2, ChronoUnit.HOURS));
         Appointment appointment = mapper.map(node);
 
-        AppointmentChangedEvent event = mapper.convert(appointment, "tenant");
+        AppointmentChangedEvent event = mapper.convert(appointment, "tenant", ZoneId.of("UTC"));
 
         assertThat(event.getChangeType()).isEqualTo("DELETED");
     }
@@ -236,7 +237,7 @@ class FhirR4AppointmentMapperTest {
                 Instant.now().plus(2, ChronoUnit.HOURS));
         Appointment appointment = mapper.map(node);
 
-        AppointmentChangedEvent event = mapper.convert(appointment, "tenant");
+        AppointmentChangedEvent event = mapper.convert(appointment, "tenant", ZoneId.of("UTC"));
 
         assertThat(event.getChangeType()).isEqualTo("CREATED");
     }
@@ -247,7 +248,7 @@ class FhirR4AppointmentMapperTest {
                 Instant.now().plus(2, ChronoUnit.HOURS));
         Appointment appointment = mapper.map(node);
 
-        AppointmentChangedEvent event = mapper.convert(appointment, "tenant");
+        AppointmentChangedEvent event = mapper.convert(appointment, "tenant", ZoneId.of("UTC"));
 
         assertThat(event.getPatientId()).isEqualTo("patient-uuid-001");
         assertThat(event.getPatientName()).isEqualTo("Jan de Vries");
@@ -259,7 +260,7 @@ class FhirR4AppointmentMapperTest {
                 Instant.now().plus(2, ChronoUnit.HOURS));
         Appointment appointment = mapper.map(node);
 
-        AppointmentChangedEvent event = mapper.convert(appointment, "tenant");
+        AppointmentChangedEvent event = mapper.convert(appointment, "tenant", ZoneId.of("UTC"));
 
         assertThat(event.getLocation()).isEqualTo("Polikliniek Kamer 3B");
     }

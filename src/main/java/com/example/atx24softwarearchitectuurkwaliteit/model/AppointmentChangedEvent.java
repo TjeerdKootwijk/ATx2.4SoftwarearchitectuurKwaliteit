@@ -18,6 +18,7 @@ public class AppointmentChangedEvent {
     private LocalDateTime eventOccurredAt;  // When the change happened in OpenMRS
     private LocalDateTime receivedAt;       // When we received it
     private String source;  // WEBHOOK or POLLING
+    private String timezone = "UTC"; // IANA ID of the tenant's local timezone (NFR13)
 
     public AppointmentChangedEvent() {}
 
@@ -147,6 +148,14 @@ public class AppointmentChangedEvent {
 
     public void setSource(String source) {
         this.source = source;
+    }
+
+    public String getTimezone() {
+        return timezone;
+    }
+
+    public void setTimezone(String timezone) {
+        this.timezone = (timezone != null && !timezone.isBlank()) ? timezone : "UTC";
     }
 
     @Override

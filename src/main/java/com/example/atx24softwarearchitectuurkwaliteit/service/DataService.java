@@ -185,6 +185,7 @@ public class DataService {
         entity.setNotificationProvider(config.getNotificationProvider());
         entity.setProviderApiKey(config.getProviderApiKey());
         entity.setProviderSecret(config.getProviderSecret());
+        entity.setTimezone(config.getTimezone());
         return entity;
     }
 
@@ -197,6 +198,7 @@ public class DataService {
         config.setNotificationProvider(entity.getNotificationProvider());
         config.setProviderApiKey(entity.getProviderApiKey());
         config.setProviderSecret(entity.getProviderSecret());
+        config.setTimezone(entity.getTimezone());
         return config;
     }
 }

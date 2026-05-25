@@ -43,6 +43,9 @@ public class TenantInitializer {
     @Value("${OPENMRS_NOTIFICATION_PROVIDER:SWIFTSEND}")
     private String notificationProvider;
 
+    @Value("${OPENMRS_TIMEZONE:UTC}")
+    private String timezone;
+
     private final TenantService tenantService;
     private final OpenMrsCompatibilityChecker compatibilityChecker;
 
@@ -58,6 +61,7 @@ public class TenantInitializer {
         config.setOpenMrsUsername(username);
         config.setOpenMrsPassword(password);
         config.setNotificationProvider(notificationProvider);
+        config.setTimezone(timezone);
         config.setActive(true);
 
         tenantService.registerTenant(config);
