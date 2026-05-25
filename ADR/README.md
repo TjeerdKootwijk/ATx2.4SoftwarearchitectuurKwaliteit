@@ -18,6 +18,7 @@ Dit logboek bevat alle architectuurbeslissingen van de OpenMRS communicatiemodul
 | [ADR-8](ADR-8.md) | String-gebaseerde provider-identificatie ter vervanging van de ProviderType-enum | Accepted | 2026-05-23 |
 | [ADR-9](ADR-9.md) | UTF-8 als verplichte karakterset door de gehele verwerkingspipeline | Accepted | 2026-05-25 |
 | [ADR-10](ADR-10.md) | Versiecompatibiliteit met OpenMRS 2.7.x+ en runtime-verificatie bij opstart | Accepted | 2026-05-25 |
+| [ADR-11](ADR-11.md) | Per-tenant tijdzone-ondersteuning via IANA timezone ID | Accepted | 2026-05-25 |
 
 ---
 
@@ -52,3 +53,6 @@ Alle byte/String-grenzen in de verwerkingspipeline gebruiken expliciet `Standard
 
 **ADR-10: Versiecompatibiliteit met OpenMRS 2.7.x+**
 De module vereist OpenMRS 2.7.x+ met de Appointments Module (`openmrs-module-appointments`). Bij tenant-registratie controleert `OpenMrsCompatibilityChecker` of het session-endpoint bereikbaar is en of de Appointments Module beschikbaar is. Ontbrekende endpoints worden gelogd als waarschuwingen; de module start altijd op (NFR7).
+
+**ADR-11: Per-tenant tijdzone-ondersteuning**
+Elke tenant heeft een IANA timezone ID (bijv. `"Europe/Amsterdam"`) opgeslagen in de database. De tijdzone stroomt als `ZoneId` door de FHIR-mapper en als IANA-string mee in het `AppointmentChangedEvent`. Zo worden de 24u- en 1u-notificatievensters berekend in de lokale tijd van de tenant, ongeacht de servertijdzone (NFR13).
