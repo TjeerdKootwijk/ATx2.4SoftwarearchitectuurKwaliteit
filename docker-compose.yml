@@ -108,13 +108,22 @@ services:
       PROVIDERS_SECUREPOST_CLIENT_SECRET: securepost-secret-key
       PROVIDERS_ASYNCFLOW_API_KEY: ${PROVIDERS_ASYNCFLOW_API_KEY}
 
-      # Tenant configuratie — wijst naar de fake OpenMRS service
-      OPENMRS_TENANT_ID: ${OPENMRS_TENANT_ID:-test-ziekenhuis}
-      OPENMRS_ORGANIZATION_NAME: ${OPENMRS_ORGANIZATION_NAME:-Test Ziekenhuis}
+      # Tenant 1 — fake-openmrs (pipeline tests)
+      OPENMRS_TENANT_ID: ${OPENMRS_TENANT_ID:-fake-ziekenhuis}
+      OPENMRS_ORGANIZATION_NAME: ${OPENMRS_ORGANIZATION_NAME:-Fake Ziekenhuis}
       OPENMRS_BASE_URL: http://fake-openmrs:8090
       OPENMRS_USERNAME: ${OPENMRS_USERNAME:-admin}
       OPENMRS_PASSWORD: ${OPENMRS_PASSWORD:-admin}
       OPENMRS_NOTIFICATION_PROVIDER: ${OPENMRS_NOTIFICATION_PROVIDER:-SWIFTSEND}
+      OPENMRS_TIMEZONE: ${OPENMRS_TIMEZONE:-UTC}
+      # Tenant 2 — echte OpenMRS (host machine via host.docker.internal)
+      OPENMRS2_TENANT_ID: ${OPENMRS2_TENANT_ID:-echt-ziekenhuis}
+      OPENMRS2_ORGANIZATION_NAME: ${OPENMRS2_ORGANIZATION_NAME:-Echt Ziekenhuis}
+      OPENMRS2_BASE_URL: ${OPENMRS2_BASE_URL:-http://host.docker.internal:80/openmrs}
+      OPENMRS2_USERNAME: ${OPENMRS2_USERNAME:-admin}
+      OPENMRS2_PASSWORD: ${OPENMRS2_PASSWORD:-Admin123}
+      OPENMRS2_NOTIFICATION_PROVIDER: ${OPENMRS2_NOTIFICATION_PROVIDER:-SWIFTSEND}
+      OPENMRS2_TIMEZONE: ${OPENMRS2_TIMEZONE:-UTC}
       # AES-256 key for encrypting sensitive DB columns (NFR5) — set in .env
       AES_ENCRYPTION_KEY: ${AES_ENCRYPTION_KEY}
     ports:
