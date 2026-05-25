@@ -3,10 +3,10 @@ package com.example.atx24softwarearchitectuurkwaliteit.service;
 import com.example.atx24softwarearchitectuurkwaliteit.messaging.queue.RabbitMQProducer;
 import com.example.atx24softwarearchitectuurkwaliteit.messaging.queue.dto.NotificationQueueMessage;
 import com.example.atx24softwarearchitectuurkwaliteit.model.AppointmentChangedEvent;
-import com.example.atx24softwarearchitectuurkwaliteit.model.TenantConfiguration;
 import com.example.atx24softwarearchitectuurkwaliteit.provider.ProviderType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -22,12 +22,17 @@ public class AppointmentService {
             LoggerFactory.getLogger(AppointmentService.class);
 
     private final RabbitMQProducer rabbitMQProducer;
+    private final String notificationProvider;
 
-    private final TenantService tenantService;
-
-    public AppointmentService(RabbitMQProducer rabbitMQProducer, TenantService tenantService) {
+    public AppointmentService(RabbitMQProducer rabbitMQProducer, Environment env) {
         this.rabbitMQProducer = rabbitMQProducer;
-        this.tenantService = tenantService;
+
+        String providerName = env.getProperty(
+                "OPENMRS_NOTIFICATION_PROVIDER",
+                "SWIFTSEND"
+        );
+
+        this.notificationProvider = env.getProperty("OPENMRS_NOTIFICATION_PROVIDER", "SWIFTSEND").toUpperCase();
     }
 
     public void handleAppointment(AppointmentChangedEvent event) {
@@ -37,31 +42,10 @@ public class AppointmentService {
                 event.getAppointmentDateTime(),
                 event.getChangeType());
 
-        // Zoek de provider en timezone op bij de juiste tenant
-        TenantConfiguration tenant = tenantService.getTenantConfiguration(event.getTenantId());
-        String notificationProvider = (tenant != null && tenant.getNotificationProvider() != null)
-                ? tenant.getNotificationProvider().toUpperCase()
-                : "SWIFTSEND";
-
-        // NFR13: gebruik de tijdzone van de tenant, niet de systeemtijdzone.
-        // Fallback naar systemDefault als de tenant geen geldige tijdzone heeft geconfigureerd.
-        ZoneId tenantZone = ZoneId.systemDefault();
-        if (tenant != null && tenant.getTimezone() != null && !tenant.getTimezone().isBlank()) {
-            try {
-                tenantZone = ZoneId.of(tenant.getTimezone());
-            } catch (Exception e) {
-                log.warn("Invalid timezone '{}' for tenant {} — falling back to system default ({})",
-                        tenant.getTimezone(), event.getTenantId(), tenantZone);
-            }
-        }
-
-        log.debug("Using provider={} timezone={} for tenant {}",
-                notificationProvider, tenantZone, event.getTenantId());
-
         LocalDateTime appointmentTime = event.getAppointmentDateTime();
 
         Instant appointmentInstant = appointmentTime
-                .atZone(tenantZone)
+                .atZone(ZoneId.systemDefault())
                 .toInstant();
 
         Instant now = Instant.now();
