@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import org.hl7.fhir.r4.model.Appointment;
 import org.hl7.fhir.r4.model.CodeableConcept;
 import org.hl7.fhir.r4.model.Reference;
+import org.hl7.fhir.r4.model.StringType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -65,6 +66,12 @@ public class FhirR4AppointmentMapper implements AppointmentMapper, AppointmentEv
             appointment.setComment(comments);
         }
 
+        // Telefoonnummer uit person.attributes (bijv. "Telephone Number" attribuuttype)
+        String phone = extractPatientPhone(node);
+        if (phone != null) {
+            appointment.addExtension("patient-phone", new StringType(phone));
+        }
+
         log.debug("Mapped OpenMRS appointment {} to FHIR R4 Appointment with status {}",
                 uuid, appointment.getStatus());
 
@@ -113,6 +120,12 @@ public class FhirR4AppointmentMapper implements AppointmentMapper, AppointmentEv
             } else if (ref == null && actor.getDisplay() != null) {
                 event.setLocation(actor.getDisplay());
             }
+        }
+
+        // Telefoonnummer overnemen uit FHIR-extensie (gevuld door map())
+        var phoneExt = appointment.getExtensionByUrl("patient-phone");
+        if (phoneExt != null && phoneExt.getValue() instanceof StringType st) {
+            event.setPatientPhone(st.getValue());
         }
 
         log.debug("Converted FHIR Appointment {} to AppointmentChangedEvent for tenant {}",
@@ -166,5 +179,27 @@ public class FhirR4AppointmentMapper implements AppointmentMapper, AppointmentEv
             case FULFILLED  -> "COMPLETED";
             default         -> "CREATED";
         };
+    }
+
+    /**
+     * Probeert het telefoonnummer van de patiënt te lezen uit de OpenMRS JSON.
+     * OpenMRS slaat contactgegevens op als person.attributes met een attribuuttype
+     * waarvan de naam "telephone" (case-insensitive) bevat.
+     * Geeft null terug als er geen telefoon aanwezig is.
+     */
+    private String extractPatientPhone(JsonNode node) {
+        JsonNode attributes = node.path("patient").path("person").path("attributes");
+        if (!attributes.isArray()) return null;
+
+        for (JsonNode attr : attributes) {
+            String typeName = attr.path("attributeType").path("display").asText("");
+            if (typeName.toLowerCase().contains("telephone") ||
+                typeName.toLowerCase().contains("phone") ||
+                typeName.toLowerCase().contains("telefoon")) {
+                String value = attr.path("value").asText(null);
+                if (value != null && !value.isBlank()) return value;
+            }
+        }
+        return null;
     }
 }
