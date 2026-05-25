@@ -59,7 +59,7 @@ Elk `AppointmentChangedEvent` heeft een unieke `eventId`. De `IdempotencyService
 ## More Information
 
 * De `AppointmentChangedEvent` is een fat event: het bevat `appointmentId`, `patientId`, `scheduledTime`, `organizationId`, `location` en `instructions`, zodat downstream consumers geen extra synchrone call naar OpenMRS hoeven te doen.
-* Retry-beleid voor de `NotificationConsumer`: drie pogingen met exponentiële backoff (1 s → 2 s → 4 s via `SimpleRetryPolicy`); daarna doorsturen naar `queue.dlq` voor handmatige inspectie.
+* Retry-beleid voor de `NotificationConsumer`: 5 pogingen met exponentiële backoff (5s → 30s → 2m → 5m → 10m via `SimpleRetryPolicy`); daarna doorsturen naar `queue.dlq` voor handmatige inspectie.
 * De polling-interval is configureerbaar via `polling.interval-ms` in `application.yml` (standaard: 300000 ms).
 * De `processed_events`-tabel wordt geïndexeerd op `processed_at` voor efficiënte opschoning; retentievenster is 30 dagen.
 * Een follow-up ADR over de `NotificationConsumer` en de provider-abstractielaag (Strategy-patroon voor SwiftSend, LegacyLink, AsyncFlow en SecurePost) is gewenst vóór productie-deployment.
