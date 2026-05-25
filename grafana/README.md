@@ -28,8 +28,7 @@ Na het inloggen ga je naar:
 
 Of gebruik de zoekfunctie bovenin (het vergrootglas) en zoek op `RabbitMQ`.
 
-<!-- Vervang de onderstaande afbeelding met een screenshot van het Grafana dashboard -->
-![Grafana dashboard overzicht](../docs/grafana-dashboard.png)
+<img width="2560" height="614" alt="image" src="https://github.com/user-attachments/assets/721cf77a-ba0b-45cd-a977-b8729d92202c" />
 
 ---
 
@@ -44,8 +43,10 @@ Of gebruik de zoekfunctie bovenin (het vergrootglas) en zoek op `RabbitMQ`.
 | HTTP fouten (4xx/5xx) | Foutieve verzoeken naar de webhook endpoint |
 | JVM geheugengebruik | Gezondheid van de Spring Boot applicatie |
 
-<!-- Vervang de onderstaande afbeelding met een screenshot van een specifiek dashboard paneel -->
-![Dashboard detailpaneel](../docs/grafana-detail.png)
+<img width="2560" height="1307" alt="image" src="https://github.com/user-attachments/assets/1a797b7f-b09e-4f7c-b9f3-55c967b46296" />
+<img width="2180" height="1030" alt="image" src="https://github.com/user-attachments/assets/0de974a7-106a-4233-a3df-c365d140c168" />
+<img width="2173" height="800" alt="image" src="https://github.com/user-attachments/assets/6de7f0ea-b22d-4b19-bf43-004c166eaa1d" />
+<img width="2182" height="761" alt="image" src="https://github.com/user-attachments/assets/a84a080d-d30f-4ec1-ada9-d48a297f1b77" />
 
 ---
 
