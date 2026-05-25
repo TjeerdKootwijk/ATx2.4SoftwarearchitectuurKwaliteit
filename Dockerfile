@@ -32,4 +32,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
     CMD wget -q -O - http://localhost:8080/actuator/health || exit 1
 
 # Run the application with OpenTelemetry agent
-ENTRYPOINT ["java", "-javaagent:/app/otel-agent.jar", "-jar", "app.jar"]
+ENTRYPOINT ["java", "-Dfile.encoding=UTF-8", "-Dstdout.encoding=UTF-8", "-javaagent:/app/otel-agent.jar", "-jar", "app.jar"]

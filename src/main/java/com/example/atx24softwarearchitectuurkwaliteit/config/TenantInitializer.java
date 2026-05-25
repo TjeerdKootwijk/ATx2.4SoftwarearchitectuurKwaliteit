@@ -1,5 +1,6 @@
 package com.example.atx24softwarearchitectuurkwaliteit.config;
 
+import com.example.atx24softwarearchitectuurkwaliteit.fhir.OpenMrsCompatibilityChecker;
 import com.example.atx24softwarearchitectuurkwaliteit.model.TenantConfiguration;
 import com.example.atx24softwarearchitectuurkwaliteit.service.TenantService;
 import org.slf4j.Logger;
@@ -43,9 +44,11 @@ public class TenantInitializer {
     private String notificationProvider;
 
     private final TenantService tenantService;
+    private final OpenMrsCompatibilityChecker compatibilityChecker;
 
-    public TenantInitializer(TenantService tenantService) {
+    public TenantInitializer(TenantService tenantService, OpenMrsCompatibilityChecker compatibilityChecker) {
         this.tenantService = tenantService;
+        this.compatibilityChecker = compatibilityChecker;
     }
 
     @EventListener(ApplicationReadyEvent.class)
@@ -61,5 +64,7 @@ public class TenantInitializer {
 
         log.info("Tenant registered: id={} | org={} | url={} | provider={}",
                 tenantId, organizationName, baseUrl, notificationProvider);
+
+        compatibilityChecker.check(config);
     }
 }

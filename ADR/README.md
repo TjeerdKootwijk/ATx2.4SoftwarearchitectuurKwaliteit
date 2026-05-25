@@ -16,6 +16,8 @@ Dit logboek bevat alle architectuurbeslissingen van de OpenMRS communicatiemodul
 | [ADR-6](ADR-6.md) | Immutable audit log per notificatiepoging | Accepted | 2026-05-23 |
 | [ADR-7](ADR-7.md) | Intern gebruik van FHIR R4 als berichtenstandaard | Accepted | 2026-05-23 |
 | [ADR-8](ADR-8.md) | String-gebaseerde provider-identificatie ter vervanging van de ProviderType-enum | Accepted | 2026-05-23 |
+| [ADR-9](ADR-9.md) | UTF-8 als verplichte karakterset door de gehele verwerkingspipeline | Accepted | 2026-05-25 |
+| [ADR-10](ADR-10.md) | Versiecompatibiliteit met OpenMRS 2.7.x+ en runtime-verificatie bij opstart | Accepted | 2026-05-25 |
 
 ---
 
@@ -44,3 +46,9 @@ Hoewel OpenMRS geen native FHIR Appointments levert, worden de opgehaalde afspra
 
 **ADR-8: String-gebaseerde provider-identificatie**
 De ProviderType-enum is vervangen door string-constanten. De ProviderFactory bouwt automatisch een overzicht op van alle geregistreerde providers. Een nieuwe provider toevoegen vereist alleen een nieuwe klasse, zonder aanpassingen aan bestaande code (Open/Closed Principle).
+
+**ADR-9: UTF-8 als verplichte karakterset**
+Alle byte/String-grenzen in de verwerkingspipeline gebruiken expliciet `StandardCharsets.UTF_8`. De JVM wordt opgestart met `-Dfile.encoding=UTF-8` zodat het gedrag omgevingsonafhankelijk is. Dit is vereist voor NFR8 (diverse karaktersets) en voorkomt datacorruptie bij AES-256-GCM versleuteling van niet-ASCII tekens.
+
+**ADR-10: Versiecompatibiliteit met OpenMRS 2.7.x+**
+De module vereist OpenMRS 2.7.x+ met de Appointments Module (`openmrs-module-appointments`). Bij tenant-registratie controleert `OpenMrsCompatibilityChecker` of het session-endpoint bereikbaar is en of de Appointments Module beschikbaar is. Ontbrekende endpoints worden gelogd als waarschuwingen; de module start altijd op (NFR7).

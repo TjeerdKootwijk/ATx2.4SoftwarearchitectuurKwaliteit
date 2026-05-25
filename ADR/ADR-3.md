@@ -20,10 +20,10 @@ De communicatiemodule moet afspraakdata ontvangen van OpenMRS om notificaties te
 
 ## Considered Options
 
-1. **OpenMRS REST API (polling)** — De module haalt periodiek afspraken op via de OpenMRS REST API.
-2. **OpenMRS Webhooks/Events** — OpenMRS stuurt bij afspraakwijzigingen een HTTP-request naar de module.
-3. **FHIR-server als tussenpersoon** — OpenMRS synchroniseert naar een FHIR-server, de module leest van de FHIR-server.
-4. **Message broker (zoals Kafka of RabbitMQ)** — OpenMRS publiceert afspraakevents naar een gedeelde broker.
+1. **OpenMRS REST API (polling)**: De module haalt periodiek afspraken op via de OpenMRS REST API.
+2. **OpenMRS Webhooks/Events**: OpenMRS stuurt bij afspraakwijzigingen een HTTP-request naar de module.
+3. **FHIR-server als tussenpersoon**: OpenMRS synchroniseert naar een FHIR-server, de module leest van de FHIR-server.
+4. **Message broker (zoals Kafka of RabbitMQ)**: OpenMRS publiceert afspraakevents naar een gedeelde broker.
 
 ## Decision Outcome
 

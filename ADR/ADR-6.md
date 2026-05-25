@@ -10,24 +10,24 @@ deciders: Groep C1
 
 De communicatiemodule verstuurt notificaties via externe providers (SwiftSend, LegacyLink, AsyncFlow, SecurePost). Providers kunnen tijdelijk onbeschikbaar zijn (503), waarna de RetryHandler de bezorging opnieuw probeert. Bij elke poging wordt het resultaat opgeslagen in de `notification_logs` tabel (FR2: auditbaarheid van verzonden notificaties).
 
-De vraag is: bij een herpoging — wordt het bestaande FAILED-record bijgewerkt naar SUCCESS, of wordt er een nieuw record aangemaakt?
+De vraag is: bij een herpoging wordt het bestaande FAILED-record bijgewerkt naar SUCCESS, of wordt er een nieuw record aangemaakt?
 
 ## Decision Drivers
 
-* **FR2**: Alle verzonden notificaties moeten auditeerbaar zijn — inclusief mislukte pogingen.
+* **FR2**: Alle verzonden notificaties moeten auditeerbaar zijn inclusief mislukte pogingen.
 * **Traceerbaarheid**: Beheerders en klanten moeten kunnen aantonen wanneer een notificatie is verstuurd en hoeveel pogingen daarvoor nodig waren.
 * **Zorgomgeving**: In een medische context kan een patient of instelling achteraf vragen wanneer en hoe een bericht is bezorgd.
 * **Eenvoud van implementatie**: De `RabbitMQConsumer` kent alleen het resultaat van de huidige poging, niet de volledige voorgeschiedenis.
 
 ## Considered Options
 
-1. **Nieuw record per poging (immutable log)** — elke bezorgpoging schrijft een nieuw record in `notification_logs` met de actuele `retry_count` en het resultaat van die specifieke poging.
-2. **Bestaand record bijwerken** — bij een retry wordt het bestaande FAILED-record overschreven met het nieuwe resultaat en de bijgewerkte `retry_count`.
-3. **Hybride: één hoofd-record + detail-records** — één record per notificatie met de einststatus, aangevuld met een aparte tabel voor pogingshistorie.
+1. **Nieuw record per poging (immutable log)**: elke bezorgpoging schrijft een nieuw record in `notification_logs` met de actuele `retry_count` en het resultaat van die specifieke poging.
+2. **Bestaand record bijwerken**: bij een retry wordt het bestaande FAILED-record overschreven met het nieuwe resultaat en de bijgewerkte `retry_count`.
+3. **Hybride: één hoofd-record + detail-records**: één record per notificatie met de einststatus, aangevuld met een aparte tabel voor pogingshistorie.
 
 ## Decision Outcome
 
-Gekozen optie: **Optie 1 — nieuw record per poging (immutable log)**, omdat dit de volledige bezorggeschiedenis bewaart zonder complexe update-logica en het beste aansluit op de auditvereiste (FR2).
+Gekozen optie: **Optie 1: nieuw record per poging (immutable log)**, omdat dit de volledige bezorggeschiedenis bewaart zonder complexe update-logica en het beste aansluit op de auditvereiste (FR2).
 
 ### Waarom geen update?
 
@@ -53,7 +53,7 @@ id=4 | notification_id=abc | SUCCESS | retry_count=1 | provider_message_id='msg-
 
 **Good:**
 - Volledige bezorggeschiedenis is altijd reconstrueerbaar per `notification_id`.
-- Geen update-logica nodig in de consumer — alleen schrijven.
+- Geen update-logica nodig in de consumer, alleen schrijven.
 - Compliant met FR2: ook mislukte pogingen zijn auditeerbaar.
 - Records zijn immutable: geen risico op onbedoeld overschrijven van historische data.
 

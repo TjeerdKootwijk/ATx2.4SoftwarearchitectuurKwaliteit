@@ -117,6 +117,13 @@ class OpenMrsHandler(BaseHTTPRequestHandler):
                   f"({COUNT_1H} x 1h-group @ +{HOURS_1H}h, "
                   f"{COUNT_24H} x 24h-group @ +{HOURS_24H}h) "
                   f"to {self.client_address[0]}")
+        elif self.path.startswith("/ws/rest/v1/session"):
+            body = json.dumps({"authenticated": True, "user": {"display": "admin"}}).encode()
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
         else:
             self.send_response(404)
             self.end_headers()

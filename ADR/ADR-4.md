@@ -20,13 +20,13 @@ In ADR-3 is vastgesteld dat de communicatiemodule afspraakdata ophaalt via perio
 
 ## Considered Options
 
-1. **Asynchrone verwerking via RabbitMQ** — De `PollingJob` publiceert nieuwe afspraken als events naar een RabbitMQ-queue. Een aparte `NotificationConsumer` verwerkt de events asynchroon, inclusief retry en dead-letter-afhandeling.
-2. **Synchrone verwerking direct in de PollingJob** — De job verwerkt en verzendt de notificatie direct binnen dezelfde poll-iteratie, zonder queue.
-3. **Database-driven scheduling** — De job slaat gepolde afspraken op in de database; een aparte scheduler-thread leest de tabel en verstuurt notificaties op het juiste moment.
+1. **Asynchrone verwerking via RabbitMQ**: De `PollingJob` publiceert nieuwe afspraken als events naar een RabbitMQ-queue. Een aparte `NotificationConsumer` verwerkt de events asynchroon, inclusief retry en dead-letter-afhandeling.
+2. **Synchrone verwerking direct in de PollingJob**: De job verwerkt en verzendt de notificatie direct binnen dezelfde poll-iteratie, zonder queue.
+3. **Database-driven scheduling**: De job slaat gepolde afspraken op in de database; een aparte scheduler-thread leest de tabel en verstuurt notificaties op het juiste moment.
 
 ## Decision Outcome
 
-Gekozen optie: **Optie 1 — Asynchrone verwerking via RabbitMQ**, omdat dit de polling-cyclus volledig ontkoppelt van de verzendlaag, betrouwbare retry-afhandeling biedt via een dead-letter queue, en de verwerkingslaag onafhankelijk uitbreidbaar maakt.
+Gekozen optie: **Optie 1: Asynchrone verwerking via RabbitMQ**, omdat dit de polling-cyclus volledig ontkoppelt van de verzendlaag, betrouwbare retry-afhandeling biedt via een dead-letter queue, en de verwerkingslaag onafhankelijk uitbreidbaar maakt.
 
 ### Hoe werkt de polling-verwerking?
 

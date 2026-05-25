@@ -9,6 +9,7 @@ import org.springframework.http.*;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
@@ -60,7 +61,7 @@ public class OpenMrsRestAppointmentFetcher implements AppointmentFetcher {
 
     private HttpHeaders buildAuthHeaders(TenantConfiguration tenant) {
         String credentials = tenant.getOpenMrsUsername() + ":" + tenant.getOpenMrsPassword();
-        String encoded = Base64.getEncoder().encodeToString(credentials.getBytes());
+        String encoded = Base64.getEncoder().encodeToString(credentials.getBytes(StandardCharsets.UTF_8));
 
         HttpHeaders headers = new HttpHeaders();
         headers.set("Authorization", "Basic " + encoded);
