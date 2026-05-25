@@ -43,9 +43,7 @@ public class AppointmentEventListener {
         log.info("[STEP 2] AppointmentEvent received from RabbitMQ");
         log.info("  Event ID    : {}", event.getEventId());
         log.info("  Tenant      : {}", event.getTenantId());
-        log.info("  Patient     : {}", event.getPatientName());
         log.info("  Appointment : {}", event.getAppointmentDateTime());
-        log.info("  Location    : {}", event.getLocation());
         log.info("  Status      : {}", event.getStatus());
         log.info("  Change type : {}", event.getChangeType());
         log.info("------------------------------------------------");
@@ -79,8 +77,6 @@ public class AppointmentEventListener {
         log.info("[STEP 2→3] NotificationQueueMessage created — forwarding to notification queue");
         log.info("  Notification ID : {}", message.getNotificationId());
         log.info("  Provider        : {}", provider);
-        log.info("  Recipient       : {}", message.getRecipient());
-        log.info("  Subject         : {}", message.getSubject());
 
         producer.publish(message);
 

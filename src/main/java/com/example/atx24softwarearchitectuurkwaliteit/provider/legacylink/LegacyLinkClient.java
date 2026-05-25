@@ -58,8 +58,6 @@ public class LegacyLinkClient {
         String xmlBody = LegacyLinkXmlMapper.toXml(request);
 
         log.info("Sending LegacyLink request to: {}/LegacyLink/SendSms", baseUrl);
-        log.debug("Request body: {}", xmlBody);
-        log.debug("Authorization: {}, X-STUDENT-GROUP: {}", authorizationHeader, studentGroup);
 
         String responseXml = webClient.post()
             .uri("/LegacyLink/SendSms")

@@ -28,8 +28,6 @@ public class SwiftSendClient {
 
     public SwiftSendResponse send(SwiftSendRequest swiftSendRequest) {
         log.info("Sending SwiftSend request to: {}/swiftsend", baseUrl);
-        log.debug("Request body: {}", swiftSendRequest);
-        log.debug("X-API-KEY: {}, X-STUDENT-GROUP: {}", apiKey, studentGroup);
 
         return webClient.post()
             .uri("/swiftsend")

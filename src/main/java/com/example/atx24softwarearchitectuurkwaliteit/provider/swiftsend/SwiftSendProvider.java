@@ -28,7 +28,7 @@ public class SwiftSendProvider implements MessagingProvider {
     @Override
     public ProviderSendResult sendMessage(NotificationQueueMessage message) {
         try {
-            log.info("Sending SwiftSend message via SwiftSend provider to recipient: {}", message.getRecipient());
+            log.info("Sending notification via SwiftSend | id={}", message.getNotificationId());
 
             SwiftSendRequest request = new SwiftSendRequest();
             request.setType("SMS");
@@ -47,7 +47,7 @@ public class SwiftSendProvider implements MessagingProvider {
             }
 
         } catch (Exception e) {
-            log.error("Error sending SwiftSend message to {}: {}", message.getRecipient(), e.getMessage(), e);
+            log.error("Error sending SwiftSend notification | id={} | error={}", message.getNotificationId(), e.getMessage(), e);
             return ProviderSendResult.error(message.getNotificationId().toString(), e.getMessage());
         }
     }

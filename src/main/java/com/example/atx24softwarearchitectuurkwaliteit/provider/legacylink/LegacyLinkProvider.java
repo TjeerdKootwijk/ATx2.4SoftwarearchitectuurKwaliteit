@@ -41,7 +41,7 @@ public class LegacyLinkProvider implements MessagingProvider {
     @Override
     public ProviderSendResult sendMessage(NotificationQueueMessage message) {
         try {
-            log.info("Sending LegacyLink message via LegacyLink provider to recipient: {}", message.getRecipient());
+            log.info("Sending notification via LegacyLink | id={}", message.getNotificationId());
 
             LegacyLinkRequest request = new LegacyLinkRequest();
             request.setPhoneNumber(message.getRecipient());
@@ -61,7 +61,7 @@ public class LegacyLinkProvider implements MessagingProvider {
             log.warn("LegacyLink message failed to send: {}", errMsg);
             return ProviderSendResult.error(message.getNotificationId().toString(), errMsg);
         } catch (Exception e) {
-            log.error("Error sending LegacyLink message to {}: {}", message.getRecipient(), e.getMessage(), e);
+            log.error("Error sending LegacyLink notification | id={} | error={}", message.getNotificationId(), e.getMessage(), e);
             return ProviderSendResult.error(message.getNotificationId().toString(), e.getMessage());
         }
     }

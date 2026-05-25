@@ -26,7 +26,7 @@ public class SecurePostProvider implements MessagingProvider {
     @Override
     public ProviderSendResult sendMessage(NotificationQueueMessage message) {
         try {
-            log.info("Sending SecurePost message via SecurePost provider to recipient: {}", message.getRecipient());
+            log.info("Sending notification via SecurePost | id={}", message.getNotificationId());
 
             SecurePostRequest request = new SecurePostRequest();
             request.setFormat("SMS");
@@ -46,7 +46,7 @@ public class SecurePostProvider implements MessagingProvider {
             }
 
         } catch (Exception e) {
-            log.error("Error sending SecurePost message to {}: {}", message.getRecipient(), e.getMessage(), e);
+            log.error("Error sending SecurePost notification | id={} | error={}", message.getNotificationId(), e.getMessage(), e);
             return ProviderSendResult.error(message.getNotificationId().toString(), e.getMessage());
         }
     }

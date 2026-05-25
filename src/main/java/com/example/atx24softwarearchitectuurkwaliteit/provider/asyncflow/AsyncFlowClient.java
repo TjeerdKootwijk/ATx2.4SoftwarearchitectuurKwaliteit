@@ -31,8 +31,6 @@ public class AsyncFlowClient implements AsyncFlowService {
     @Override
     public AsyncFlowResponse send(AsyncFlowRequest request) {
         log.info("Sending AsyncFlow request to: {}/asyncflow", baseUrl);
-        log.debug("Request body: {}", request);
-        log.debug("X-API-KEY: {}, X-STUDENT-GROUP: {}", apiKey, studentGroup);
 
         return webClient.post()
                 .uri("/asyncflow")

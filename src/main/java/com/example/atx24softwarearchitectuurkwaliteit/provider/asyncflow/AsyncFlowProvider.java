@@ -31,7 +31,7 @@ public class AsyncFlowProvider implements MessagingProvider {
     @Override
     public ProviderSendResult sendMessage(NotificationQueueMessage message) {
         try {
-            log.info("Sending message via AsyncFlow provider to recipient: {}", message.getRecipient());
+            log.info("Sending notification via AsyncFlow | id={}", message.getNotificationId());
 
             AsyncFlowRequest request = new AsyncFlowRequest();
             request.setRecipient(message.getRecipient());

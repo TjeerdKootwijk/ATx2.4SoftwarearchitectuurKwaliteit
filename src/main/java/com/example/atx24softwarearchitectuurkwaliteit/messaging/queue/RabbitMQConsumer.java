@@ -60,11 +60,8 @@ public class RabbitMQConsumer {
                 context.retryCount() == 0 ? "1" : context.retryCount() + 1,
                 3 + 1,
                 message.getNotificationId());
-        log.info("  Provider  : {}", message.getProvider());
-        log.info("  Ontvanger : {}", message.getRecipient());
-        log.info("  Onderwerp : {}", message.getSubject());
+        log.info("  Provider    : {}", message.getProvider());
         log.info("  MessageType : {}", message.getMessageType());
-        log.info("  body : {}", message.getBody());
         log.info("------------------------------------------------");
 
         MessagingProvider provider = providerFactory.get(message.getProvider());
