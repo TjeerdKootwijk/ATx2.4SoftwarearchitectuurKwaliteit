@@ -51,6 +51,10 @@ public class TenantInitializer {
     @Value("${OPENMRS_NOTIFICATION_PROVIDER:SWIFTSEND}")
     private String notificationProvider;
 
+    // NFR13: IANA timezone for tenant 1 (e.g. Europe/Amsterdam, Africa/Nairobi)
+    @Value("${OPENMRS_TIMEZONE:UTC}")
+    private String timezone;
+
     // ── Tenant 2 (optioneel) ─────────────────────────────────────────────────
     @Value("${OPENMRS2_TENANT_ID:}")
     private String tenant2Id;
@@ -70,6 +74,9 @@ public class TenantInitializer {
     @Value("${OPENMRS2_NOTIFICATION_PROVIDER:SWIFTSEND}")
     private String tenant2NotificationProvider;
 
+    @Value("${OPENMRS2_TIMEZONE:UTC}")
+    private String tenant2Timezone;
+
     private final TenantService tenantService;
 
     public TenantInitializer(TenantService tenantService) {
@@ -84,11 +91,12 @@ public class TenantInitializer {
         config.setOpenMrsUsername(username);
         config.setOpenMrsPassword(password);
         config.setNotificationProvider(notificationProvider);
+        config.setTimezone(timezone);
         config.setActive(true);
 
         tenantService.registerTenant(config);
-        log.info("[TENANT] Geregistreerd: id={} | org={} | url={} | provider={}",
-                tenantId, organizationName, baseUrl, notificationProvider);
+        log.info("[TENANT] Geregistreerd: id={} | org={} | url={} | provider={} | timezone={}",
+                tenantId, organizationName, baseUrl, notificationProvider, timezone);
 
         // ── Tenant 2 (alleen als OPENMRS2_BASE_URL is geconfigureerd) ────────
         if (tenant2BaseUrl != null && !tenant2BaseUrl.isBlank()) {
@@ -100,11 +108,12 @@ public class TenantInitializer {
             config2.setOpenMrsUsername(tenant2Username);
             config2.setOpenMrsPassword(tenant2Password);
             config2.setNotificationProvider(tenant2NotificationProvider);
+            config2.setTimezone(tenant2Timezone);
             config2.setActive(true);
 
             tenantService.registerTenant(config2);
-            log.info("[TENANT] Geregistreerd: id={} | org={} | url={} | provider={}",
-                    id, org, tenant2BaseUrl, tenant2NotificationProvider);
+            log.info("[TENANT] Geregistreerd: id={} | org={} | url={} | provider={} | timezone={}",
+                    id, org, tenant2BaseUrl, tenant2NotificationProvider, tenant2Timezone);
         } else {
             log.info("[TENANT] Geen tweede tenant geconfigureerd (OPENMRS2_BASE_URL niet ingesteld)");
         }

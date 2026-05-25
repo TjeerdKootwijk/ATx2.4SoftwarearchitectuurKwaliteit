@@ -9,6 +9,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -45,6 +46,7 @@ class AppointmentServiceTest {
 
         TenantConfiguration tenant = new TenantConfiguration("tenant-ziekenhuis-a", "Ziekenhuis A");
         tenant.setNotificationProvider("SWIFTSEND");
+        tenant.setTimezone(ZoneId.systemDefault().getId());
         when(tenantService.getTenantConfiguration("tenant-ziekenhuis-a")).thenReturn(tenant);
 
         appointmentService.handleAppointment(event);
@@ -66,6 +68,7 @@ class AppointmentServiceTest {
 
         TenantConfiguration tenant = new TenantConfiguration("tenant-ziekenhuis-a", "Ziekenhuis A");
         tenant.setNotificationProvider("LEGACYLINK");
+        tenant.setTimezone(ZoneId.systemDefault().getId());
         when(tenantService.getTenantConfiguration("tenant-ziekenhuis-a")).thenReturn(tenant);
 
         appointmentService.handleAppointment(event);
@@ -87,6 +90,7 @@ class AppointmentServiceTest {
 
         TenantConfiguration tenant = new TenantConfiguration("tenant-ziekenhuis-a", "Ziekenhuis A");
         tenant.setNotificationProvider("SWIFTSEND");
+        tenant.setTimezone(ZoneId.systemDefault().getId());
         when(tenantService.getTenantConfiguration("tenant-ziekenhuis-a")).thenReturn(tenant);
 
         appointmentService.handleAppointment(event);
@@ -102,6 +106,7 @@ class AppointmentServiceTest {
 
         TenantConfiguration tenant = new TenantConfiguration("tenant-ziekenhuis-a", "Ziekenhuis A");
         tenant.setNotificationProvider("SWIFTSEND");
+        tenant.setTimezone(ZoneId.systemDefault().getId());
         when(tenantService.getTenantConfiguration("tenant-ziekenhuis-a")).thenReturn(tenant);
 
         appointmentService.handleAppointment(event);

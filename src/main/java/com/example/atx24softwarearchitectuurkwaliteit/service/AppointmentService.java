@@ -37,18 +37,31 @@ public class AppointmentService {
                 event.getAppointmentDateTime(),
                 event.getChangeType());
 
-        // Zoek de provider op bij de juiste tenant — niet globaal uit env vars
+        // Zoek de provider en timezone op bij de juiste tenant
         TenantConfiguration tenant = tenantService.getTenantConfiguration(event.getTenantId());
         String notificationProvider = (tenant != null && tenant.getNotificationProvider() != null)
                 ? tenant.getNotificationProvider().toUpperCase()
                 : "SWIFTSEND";
 
-        log.debug("Using provider {} for tenant {}", notificationProvider, event.getTenantId());
+        // NFR13: gebruik de tijdzone van de tenant, niet de systeemtijdzone.
+        // Fallback naar systemDefault als de tenant geen geldige tijdzone heeft geconfigureerd.
+        ZoneId tenantZone = ZoneId.systemDefault();
+        if (tenant != null && tenant.getTimezone() != null && !tenant.getTimezone().isBlank()) {
+            try {
+                tenantZone = ZoneId.of(tenant.getTimezone());
+            } catch (Exception e) {
+                log.warn("Invalid timezone '{}' for tenant {} — falling back to system default ({})",
+                        tenant.getTimezone(), event.getTenantId(), tenantZone);
+            }
+        }
+
+        log.debug("Using provider={} timezone={} for tenant {}",
+                notificationProvider, tenantZone, event.getTenantId());
 
         LocalDateTime appointmentTime = event.getAppointmentDateTime();
 
         Instant appointmentInstant = appointmentTime
-                .atZone(ZoneId.systemDefault())
+                .atZone(tenantZone)
                 .toInstant();
 
         Instant now = Instant.now();
