@@ -8,6 +8,8 @@ import org.slf4j.MDC;
 import java.time.Instant;
 import java.util.UUID;
 
+import java.util.Set;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -75,6 +77,21 @@ class NotificationDiagnosticContextTest {
             assertEquals("test-tenant", MDC.get(NotificationDiagnosticContext.TENANT_ID));
         }
         assertEquals("outer-tenant", MDC.get(NotificationDiagnosticContext.TENANT_ID));
+    }
+
+    @Test
+    void open_setsExactlyTheExpectedNonPiiKeySet() {
+        // Bewaakt dat niemand later stilletjes een (mogelijk PII-)sleutel toevoegt.
+        try (NotificationDiagnosticContext ignored =
+                     NotificationDiagnosticContext.open(sampleMessage(), 1)) {
+            Set<String> expected = Set.of(
+                    NotificationDiagnosticContext.NOTIFICATION_ID,
+                    NotificationDiagnosticContext.TENANT_ID,
+                    NotificationDiagnosticContext.PROVIDER,
+                    NotificationDiagnosticContext.MESSAGE_TYPE,
+                    NotificationDiagnosticContext.ATTEMPT);
+            assertEquals(expected, MDC.getCopyOfContextMap().keySet());
+        }
     }
 
     @Test
