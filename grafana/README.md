@@ -61,6 +61,41 @@ Traces zijn beschikbaar via **Grafana Explore > Tempo**.
 
 ---
 
+## Foutopsporing: een fout herleiden tot de regel + de ingevulde gegevens
+
+Naast het RabbitMQ-dashboard is er een tweede dashboard **Foutopsporing / Error Tracing**.
+Daarmee herleid je een fout helemaal terug naar de **precieze regel code** waar het misging,
+**inclusief de ingevulde gegevens** die de fout veroorzaakten.
+
+**Werkwijze:**
+
+1. Open **Dashboards > Foutopsporing / Error Tracing**.
+2. In het paneel **Foutlogs met stacktrace** klik je een foutregel open.
+   - De stacktrace toont `Klasse.methode(Bestand.java:regelnummer)` — dát is de regel waar het vastliep.
+   - In de details staat de **input-context**: `notification.id`, `tenant.id`, `provider`,
+     `message.type` en `attempt` (pogingsnummer).
+3. Klik op het veld **trace_id** → **Open trace in Tempo** om de volledige trace (alle spans)
+   van dezelfde verwerking te bekijken.
+
+Hoe het technisch werkt: bij het verwerken van een notificatie wordt de niet-PII input-context
+in de [SLF4J MDC](https://www.slf4j.org/manual.html#mdc) gezet door
+`NotificationDiagnosticContext`. De `RabbitMQConsumer` vangt fouten op de pijplijngrens en logt
+de volledige exception (`log.error("...", e)`), waardoor de stacktrace mét de context naar Loki
+gaat. De OpenTelemetry-agent voegt automatisch `trace_id`/`span_id` toe voor de koppeling met Tempo.
+
+**Privacy (NFR4/NFR11):** persoonsgegevens en afspraakdetails (telefoonnummer/recipient, subject,
+body) worden **nooit** gelogd. De echte gegevens herleid je via `notification.id` in de database.
+
+### Datasources voor Foutopsporing
+
+`grafana/provisioning/datasources/loki-tempo.yml` voegt twee datasources toe: **Loki**
+(uid `loki-app`, met een afgeleid `trace_id`-veld dat naar Tempo linkt) en **Tempo** (uid
+`tempo-app`). Het otel-lgtm-image draait Loki op poort 3100 en Tempo op 3200 binnen dezelfde
+container. Komen de labels in jouw omgeving niet overeen (bijv. een andere `service_name`),
+pas dan de queries in `grafana/dashboards/error-tracing.json` aan.
+
+---
+
 ## Tijdbereik aanpassen
 
 Rechtsboven in Grafana kun je het tijdbereik instellen. Voor realtime bewaking gebruik je `Last 5 minutes` met auto-refresh op `10s`.

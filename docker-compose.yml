@@ -153,6 +153,7 @@ services:
       - "4318:4318"   # OTLP HTTP
     volumes:
       - ./grafana/provisioning/datasources/rabbitmq-prometheus.yml:/otel-lgtm/grafana/conf/provisioning/datasources/rabbitmq-prometheus.yml
+      - ./grafana/provisioning/datasources/loki-tempo.yml:/otel-lgtm/grafana/conf/provisioning/datasources/loki-tempo.yml
       - ./grafana/provisioning/dashboards/rabbitmq-dashboards.yml:/otel-lgtm/grafana/conf/provisioning/dashboards/rabbitmq-dashboards.yml
       - ./grafana/dashboards:/grafana/dashboards
 

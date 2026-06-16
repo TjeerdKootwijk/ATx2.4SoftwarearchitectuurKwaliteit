@@ -1,0 +1,85 @@
+{
+  "uid": "error-tracing",
+  "title": "Foutopsporing / Error Tracing",
+  "tags": ["errors", "loki", "tracing"],
+  "timezone": "browser",
+  "schemaVersion": 38,
+  "version": 1,
+  "refresh": "10s",
+  "time": { "from": "now-1h", "to": "now" },
+  "panels": [
+    {
+      "id": 1,
+      "type": "text",
+      "title": "Hoe gebruik je dit dashboard?",
+      "gridPos": { "x": 0, "y": 0, "w": 24, "h": 4 },
+      "options": {
+        "mode": "markdown",
+        "content": "Dit dashboard maakt elke fout **herleidbaar tot de precieze regel code** met de **ingevulde gegevens** waarmee het misging.\n\n1. Klik in **Foutlogs met stacktrace** een regel open. De stacktrace toont `Klasse.methode(Bestand.java:regelnummer)` — daar liep het vast.\n2. In de details zie je de input-context: `notification.id`, `tenant.id`, `provider`, `message.type`, `attempt`. (Geen persoonsgegevens — NFR11.)\n3. Klik op het **trace_id**-veld → **Open trace in Tempo** voor de volledige trace.\n\n> De echte afspraak-/contactgegevens herleid je via `notification.id` in de database."
+      }
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Aantal fouten (geselecteerde periode)",
+      "description": "Logregels met error/exception/mislukt/failed binnen het tijdbereik.",
+      "gridPos": { "x": 0, "y": 4, "w": 6, "h": 5 },
+      "datasource": { "type": "loki", "uid": "loki-app" },
+      "options": { "colorMode": "background", "graphMode": "none", "textMode": "auto", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "fieldConfig": { "defaults": { "noValue": "0", "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 1 }, { "color": "red", "value": 10 }] } } },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "loki", "uid": "loki-app" },
+          "expr": "sum(count_over_time({service_name=\"atx24-app\"} |~ `(?i)(mislukt|exception|error|failed)` [$__range]))",
+          "queryType": "instant"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "Fouten over tijd",
+      "description": "Aantal foutregels per tijdsinterval.",
+      "gridPos": { "x": 6, "y": 4, "w": 18, "h": 5 },
+      "datasource": { "type": "loki", "uid": "loki-app" },
+      "fieldConfig": { "defaults": { "custom": { "drawStyle": "bars", "fillOpacity": 60, "lineWidth": 1 }, "color": { "mode": "fixed", "fixedColor": "red" } } },
+      "options": { "legend": { "showLegend": false }, "tooltip": { "mode": "single" } },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "loki", "uid": "loki-app" },
+          "expr": "sum(count_over_time({service_name=\"atx24-app\"} |~ `(?i)(mislukt|exception|error|failed)` [$__auto]))",
+          "queryType": "range",
+          "legendFormat": "fouten"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "logs",
+      "title": "Foutlogs met stacktrace (klik een regel open)",
+      "description": "Filtert op error/exception/mislukt/failed. Klap een regel open voor stacktrace (regelnummer), input-context en de trace_id-link naar Tempo.",
+      "gridPos": { "x": 0, "y": 9, "w": 24, "h": 17 },
+      "datasource": { "type": "loki", "uid": "loki-app" },
+      "options": {
+        "showTime": true,
+        "showLabels": false,
+        "showCommonLabels": false,
+        "wrapLogMessage": true,
+        "prettifyLogMessage": false,
+        "enableLogDetails": true,
+        "dedupStrategy": "none",
+        "sortOrder": "Descending"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "loki", "uid": "loki-app" },
+          "expr": "{service_name=\"atx24-app\"} |~ `(?i)(mislukt|exception|error|failed)`",
+          "queryType": "range"
+        }
+      ]
+    }
+  ]
+}
