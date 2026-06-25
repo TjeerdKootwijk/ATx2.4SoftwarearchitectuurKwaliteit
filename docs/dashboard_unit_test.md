@@ -61,3 +61,41 @@ Tests die het dashboard en de logging-keten bewaken (zonder draaiende stack).
 | `providerFailureResult_isLoggedWithInputContext` | Provider-weigering gelogd met context. |
 | `diagnosticContext_isClearedAfterProcessing` | MDC leeg na verwerking (geen lekkage). |
 | `deserializationFailure_isLoggedAndRethrown` | Kapotte payload één keer gelogd en doorgegooid. |
+
+---
+
+### Backend-tests gekoppeld aan de FMEA
+
+Tests die de **waarde achter een dashboardpaneel** aantonen: de backend produceert de metric
+of de logregel die het dashboard laat zien. Zo bewijzen we automatisch dat het dashboard het
+juiste beeld toont bij de FMEA-scenario's.
+
+#### `NotificationMetricsDashboardTest` - FMEA 17/18 (monitoring) + alert *Veel mislukte notificaties*
+
+Voedt: panelen *Geslaagde/Mislukte/Totaal Transacties*, *Verstuurd vs Mislukt*,
+*Notificatie Slagingspercentage* (metric `notifications_sent_total`).
+
+| Test | Controleert |
+| --- | --- |
+| `geslaagdeBezorging_verhoogtSuccesCounterMetProviderTag` | Geslaagde bezorging → `status=success`-counter = 1 (met provider-tag). |
+| `providerWeigering_verhoogtMisluktCounter` | Provider-weigering → `status=failed`-counter = 1. |
+| `onverwachteCrash_teltNietAlsMisluktTransactie_alleenAlsFoutlog` | Een crash hoogt de transactie-counter niet op; verschijnt enkel in het foutlog-paneel. |
+
+#### `UnknownTenantDashboardTest` - FMEA 13 (onbekende tenantId)
+
+Voedt: paneel *Errors & Warnings* (`detected_level=~"error|warn"`).
+
+| Test | Controleert |
+| --- | --- |
+| `onbekendeTenant_logtErrorMetTenantId_zichtbaarOpDashboard` | Onbekende tenant → ERROR-log mét tenantId (herleidbaar op dashboard). |
+| `onbekendeTenant_publiceertGeenNotificatie` | Geen notificatie gepubliceerd voor de onbekende tenant. |
+| `bekendeTenant_publiceert_enLogtGeenError` | Positieve controle: bekende tenant → publiceert, geen ERROR op dashboard. |
+
+#### `TenantPollFailureDashboardTest` - FMEA 11 (credential-rotatie) + raakt 12 (geen starvation)
+
+Voedt: paneel *Errors & Warnings* + poll-fout-alert.
+
+| Test | Controleert |
+| --- | --- |
+| `mislukteTenantPoll_logtErrorMetTenantId` | Mislukte poll (bv. 401 na key-rotatie) → ERROR-log mét tenantId. |
+| `foutBijEenTenant_blokkeertHetPollenVanAndereTenantsNiet` | Eén kapotte tenant blokkeert het pollen van de overige tenants niet. |
