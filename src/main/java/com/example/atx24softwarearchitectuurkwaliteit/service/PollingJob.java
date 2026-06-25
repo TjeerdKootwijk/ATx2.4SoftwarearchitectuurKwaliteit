@@ -93,6 +93,9 @@ public class PollingJob {
                 // Stap 3: converteer FHIR Appointment → intern event (NFR13: tenant timezone meegeven)
                 AppointmentChangedEvent event = converter.convert(fhirAppointment, tenantId, tenantZone);
 
+                // Per-tenant notificatieprovider meegeven (multi-tenancy: elke tenant kan eigen provider hebben)
+                event.setNotificationProvider(tenant.getNotificationProvider());
+
                 // Stap 4: idempotency check — skip als dit event al eerder verwerkt is
                 if (!idempotencyService.processAppointment(event)) {
                     continue;

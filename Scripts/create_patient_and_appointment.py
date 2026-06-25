@@ -223,6 +223,26 @@ def maak_patient(locatie_uuid: str, identifier_type_uuid: str, patient_data: dic
             "preferred":      False
         })
 
+    # Telefoonnummer attribute toevoegen zodat de communicatiemodule het kan lezen
+    attributes = []
+    phone = patient_data.get("phone")
+    if phone:
+        # OpenMRS standaard attribuuttype voor telefoonnummer
+        r_attr = session.get(f"{REST_BASE}/personattributetype",
+                             params={"v": "default", "q": "Telephone"})
+        if r_attr.status_code == 200:
+            attr_results = r_attr.json().get("results", [])
+            if attr_results:
+                attributes.append({
+                    "attributeType": attr_results[0]["uuid"],
+                    "value": phone
+                })
+                print(f"  Telefoonnummer attribuuttype gevonden: {attr_results[0]['display']}")
+            else:
+                print("  [WAARSCHUWING] Geen 'Telephone' attribuuttype gevonden in OpenMRS")
+        else:
+            print(f"  [WAARSCHUWING] Kon attribuuttypes niet ophalen: HTTP {r_attr.status_code}")
+
     payload = {
         "person": {
             "names": [
@@ -232,9 +252,10 @@ def maak_patient(locatie_uuid: str, identifier_type_uuid: str, patient_data: dic
                     "preferred":  True
                 }
             ],
-            "gender":    geslacht,
-            "birthdate": patient_data["birthDate"],
-            "addresses": []
+            "gender":     geslacht,
+            "birthdate":  patient_data["birthDate"],
+            "addresses":  [],
+            "attributes": attributes
         },
         "identifiers": identifiers
     }

@@ -19,6 +19,8 @@ public class AppointmentChangedEvent {
     private LocalDateTime receivedAt;       // When we received it
     private String source;  // WEBHOOK or POLLING
     private String timezone = "UTC"; // IANA ID of the tenant's local timezone (NFR13)
+    private String patientPhone; // Telefoonnummer van de patiënt (uit OpenMRS person attributes)
+    private String notificationProvider; // Per-tenant provider (SWIFTSEND, SECUREPOST, etc.)
 
     public AppointmentChangedEvent() {}
 
@@ -156,6 +158,22 @@ public class AppointmentChangedEvent {
 
     public void setTimezone(String timezone) {
         this.timezone = (timezone != null && !timezone.isBlank()) ? timezone : "UTC";
+    }
+
+    public String getPatientPhone() {
+        return patientPhone;
+    }
+
+    public void setPatientPhone(String patientPhone) {
+        this.patientPhone = patientPhone;
+    }
+
+    public String getNotificationProvider() {
+        return notificationProvider;
+    }
+
+    public void setNotificationProvider(String notificationProvider) {
+        this.notificationProvider = notificationProvider;
     }
 
     @Override

@@ -139,7 +139,7 @@
       "datasource": { "uid": "prometheus-rabbitmq", "type": "prometheus" },
       "options": { "colorMode": "background", "graphMode": "none", "textMode": "auto" },
       "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "color": "blue", "value": null }] } } },
-      "targets": [{ "expr": "sum(notifications_sent_total{job=\"spring-app\"})", "legendFormat": "Totaal", "refId": "A" }]
+      "targets": [{ "expr": "sum(notifications_sent_total{job=\"spring-app\"}) or vector(0)", "legendFormat": "Totaal", "refId": "A" }]
     },
 
     { "id": 5, "type": "row", "title": "Notificatie Status & Fouten", "gridPos": { "x": 0, "y": 20, "w": 24, "h": 1 }, "collapsed": false },
@@ -309,8 +309,8 @@
       "gridPos": { "x": 8, "y": 57, "w": 8, "h": 4 },
       "datasource": { "uid": "prometheus-rabbitmq", "type": "prometheus" },
       "options": { "colorMode": "background", "graphMode": "area", "textMode": "auto" },
-      "fieldConfig": { "defaults": { "unit": "percent", "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 70 }, { "color": "red", "value": 90 }] } } },
-      "targets": [{ "expr": "sum(jvm_memory_used_bytes{job=\"spring-app\", area=\"heap\"}) / sum(jvm_memory_max_bytes{job=\"spring-app\", area=\"heap\"}) * 100", "legendFormat": "Heap %", "refId": "A" }]
+      "fieldConfig": { "defaults": { "noValue": "0", "unit": "percent", "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 70 }, { "color": "red", "value": 90 }] } } },
+      "targets": [{ "expr": "(sum(jvm_memory_used_bytes{job=\"spring-app\", area=\"heap\"}) / sum(jvm_memory_max_bytes{job=\"spring-app\", area=\"heap\"}) * 100) or vector(0)", "legendFormat": "Heap %", "refId": "A" }]
     },
 
     {
@@ -319,8 +319,8 @@
       "gridPos": { "x": 16, "y": 57, "w": 8, "h": 4 },
       "datasource": { "uid": "prometheus-rabbitmq", "type": "prometheus" },
       "options": { "colorMode": "background", "graphMode": "area", "textMode": "auto" },
-      "fieldConfig": { "defaults": { "unit": "percentunit", "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 0.7 }, { "color": "red", "value": 0.9 }] } } },
-      "targets": [{ "expr": "process_cpu_usage{job=\"spring-app\"}", "legendFormat": "CPU %", "refId": "A" }]
+      "fieldConfig": { "defaults": { "noValue": "0", "unit": "percentunit", "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 0.7 }, { "color": "red", "value": 0.9 }] } } },
+      "targets": [{ "expr": "process_cpu_usage{job=\"spring-app\"} or vector(0)", "legendFormat": "CPU %", "refId": "A" }]
     },
 
     {
