@@ -155,7 +155,20 @@ services:
       - ./grafana/provisioning/datasources/rabbitmq-prometheus.yml:/otel-lgtm/grafana/conf/provisioning/datasources/rabbitmq-prometheus.yml
       - ./grafana/provisioning/dashboards/rabbitmq-dashboards.yml:/otel-lgtm/grafana/conf/provisioning/dashboards/rabbitmq-dashboards.yml
       - ./grafana/dashboards:/grafana/dashboards
-
+    # Seeder: maakt eenmalig een testpatiënt + afspraak aan bij opstart
+  seed-data:
+    build:
+      context: ./Scripts
+      dockerfile: Dockerfile
+    container_name: atx24-seed-data
+    depends_on:
+      fake-openmrs:
+        condition: service_started
+      app:
+        condition: service_healthy
+    environment:
+      OPENMRS_BASE_URL: http://fake-openmrs:8090
+    restart: "no"
 volumes:
   postgres-data:
   rabbitmq-data:
