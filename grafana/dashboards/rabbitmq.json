@@ -8,13 +8,27 @@
   "refresh": "5s",
   "time": { "from": "now-1h", "to": "now" },
   "panels": [
+    {
+      "id": 50, "type": "alertlist", "title": "Actieve alerts",
+      "description": "Toont alerts die nu Firing of Pending zijn. Leeg betekent: alles gezond.",
+      "gridPos": { "x": 0, "y": 0, "w": 24, "h": 5 },
+      "options": {
+        "viewMode": "list",
+        "groupMode": "default",
+        "maxItems": 20,
+        "sortOrder": 3,
+        "dashboardAlerts": false,
+        "alertInstanceLabelFilter": "",
+        "stateFilter": { "firing": true, "pending": true, "error": true, "noData": false, "normal": false }
+      }
+    },
 
-    { "id": 30, "type": "row", "title": "Queue Status per Queue", "gridPos": { "x": 0, "y": 0, "w": 24, "h": 1 }, "collapsed": false },
+    { "id": 30, "type": "row", "title": "Queue Status per Queue", "gridPos": { "x": 0, "y": 5, "w": 24, "h": 1 }, "collapsed": false },
 
     {
       "id": 31, "type": "stat", "title": "Main Queue",
       "description": "Aantal berichten in notification.queue (wachtend op verwerking).",
-      "gridPos": { "x": 0, "y": 1, "w": 4, "h": 4 },
+      "gridPos": { "x": 0, "y": 6, "w": 4, "h": 4 },
       "datasource": { "uid": "prometheus-rabbitmq", "type": "prometheus" },
       "options": { "colorMode": "background", "graphMode": "none", "textMode": "auto" },
       "fieldConfig": { "defaults": { "noValue": "0", "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 50 }, { "color": "red", "value": 500 }] } } },
@@ -24,7 +38,7 @@
     {
       "id": 32, "type": "stat", "title": "Retry 1 (5s)",
       "description": "Aantal berichten in retry queue 1 (wacht 5 seconden).",
-      "gridPos": { "x": 4, "y": 1, "w": 3, "h": 4 },
+      "gridPos": { "x": 4, "y": 6, "w": 3, "h": 4 },
       "datasource": { "uid": "prometheus-rabbitmq", "type": "prometheus" },
       "options": { "colorMode": "background", "graphMode": "none", "textMode": "auto" },
       "fieldConfig": { "defaults": { "noValue": "0", "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 10 }] } } },
@@ -34,7 +48,7 @@
     {
       "id": 33, "type": "stat", "title": "Retry 2 (30s)",
       "description": "Aantal berichten in retry queue 2 (wacht 30 seconden).",
-      "gridPos": { "x": 7, "y": 1, "w": 3, "h": 4 },
+      "gridPos": { "x": 7, "y": 6, "w": 3, "h": 4 },
       "datasource": { "uid": "prometheus-rabbitmq", "type": "prometheus" },
       "options": { "colorMode": "background", "graphMode": "none", "textMode": "auto" },
       "fieldConfig": { "defaults": { "noValue": "0", "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 10 }] } } },
@@ -44,7 +58,7 @@
     {
       "id": 34, "type": "stat", "title": "Retry 3 (2min)",
       "description": "Aantal berichten in retry queue 3 (wacht 2 minuten).",
-      "gridPos": { "x": 10, "y": 1, "w": 3, "h": 4 },
+      "gridPos": { "x": 10, "y": 6, "w": 3, "h": 4 },
       "datasource": { "uid": "prometheus-rabbitmq", "type": "prometheus" },
       "options": { "colorMode": "background", "graphMode": "none", "textMode": "auto" },
       "fieldConfig": { "defaults": { "noValue": "0", "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 10 }] } } },
@@ -54,7 +68,7 @@
     {
       "id": 35, "type": "stat", "title": "Retry 4 (5min)",
       "description": "Aantal berichten in retry queue 4 (wacht 5 minuten).",
-      "gridPos": { "x": 13, "y": 1, "w": 3, "h": 4 },
+      "gridPos": { "x": 13, "y": 6, "w": 3, "h": 4 },
       "datasource": { "uid": "prometheus-rabbitmq", "type": "prometheus" },
       "options": { "colorMode": "background", "graphMode": "none", "textMode": "auto" },
       "fieldConfig": { "defaults": { "noValue": "0", "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 10 }] } } },
@@ -64,7 +78,7 @@
     {
       "id": 36, "type": "stat", "title": "Retry 5 (10min)",
       "description": "Aantal berichten in retry queue 5 (wacht 10 minuten).",
-      "gridPos": { "x": 16, "y": 1, "w": 3, "h": 4 },
+      "gridPos": { "x": 16, "y": 6, "w": 3, "h": 4 },
       "datasource": { "uid": "prometheus-rabbitmq", "type": "prometheus" },
       "options": { "colorMode": "background", "graphMode": "none", "textMode": "auto" },
       "fieldConfig": { "defaults": { "noValue": "0", "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 10 }] } } },
@@ -74,7 +88,7 @@
     {
       "id": 37, "type": "stat", "title": "Dead Letter Queue",
       "description": "Aantal berichten dat permanent gefaald is (na alle retries).",
-      "gridPos": { "x": 19, "y": 1, "w": 5, "h": 4 },
+      "gridPos": { "x": 19, "y": 6, "w": 5, "h": 4 },
       "datasource": { "uid": "prometheus-rabbitmq", "type": "prometheus" },
       "options": { "colorMode": "background", "graphMode": "none", "textMode": "auto" },
       "fieldConfig": { "defaults": { "noValue": "0", "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "red", "value": 1 }] } } },
@@ -84,7 +98,7 @@
     {
       "id": 38, "type": "timeseries", "title": "Queue Diepte Over Tijd",
       "description": "Aantal berichten per queue over tijd.",
-      "gridPos": { "x": 0, "y": 5, "w": 24, "h": 8 },
+      "gridPos": { "x": 0, "y": 10, "w": 24, "h": 8 },
       "datasource": { "uid": "prometheus-rabbitmq", "type": "prometheus" },
       "fieldConfig": {
         "defaults": { "custom": { "lineWidth": 2, "fillOpacity": 5 } },
@@ -110,12 +124,12 @@
       ]
     },
 
-    { "id": 1, "type": "row", "title": "Transactie Overzicht", "gridPos": { "x": 0, "y": 13, "w": 24, "h": 1 }, "collapsed": false },
+    { "id": 1, "type": "row", "title": "Transactie Overzicht", "gridPos": { "x": 0, "y": 18, "w": 24, "h": 1 }, "collapsed": false },
 
     {
       "id": 2, "type": "stat", "title": "Geslaagde Transacties",
       "description": "Totaal aantal notificaties dat succesvol verstuurd is door de consumer.",
-      "gridPos": { "x": 0, "y": 14, "w": 8, "h": 6 },
+      "gridPos": { "x": 0, "y": 19, "w": 8, "h": 6 },
       "datasource": { "uid": "prometheus-rabbitmq", "type": "prometheus" },
       "options": { "colorMode": "background", "graphMode": "none", "textMode": "auto", "reduceOptions": { "calcs": ["lastNotNull"] } },
       "fieldConfig": { "defaults": { "noValue": "0", "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] } } },
@@ -125,7 +139,7 @@
     {
       "id": 3, "type": "stat", "title": "Mislukte Transacties",
       "description": "Totaal aantal notificaties dat gefaald is door de consumer.",
-      "gridPos": { "x": 8, "y": 14, "w": 8, "h": 6 },
+      "gridPos": { "x": 8, "y": 19, "w": 8, "h": 6 },
       "datasource": { "uid": "prometheus-rabbitmq", "type": "prometheus" },
       "options": { "colorMode": "background", "graphMode": "none", "textMode": "auto" },
       "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "red", "value": 1 }] } } },
@@ -135,19 +149,19 @@
     {
       "id": 4, "type": "stat", "title": "Totaal Geprobeerd",
       "description": "Totaal aantal gepubliceerde berichten (geslaagd + mislukt).",
-      "gridPos": { "x": 16, "y": 14, "w": 8, "h": 6 },
+      "gridPos": { "x": 16, "y": 19, "w": 8, "h": 6 },
       "datasource": { "uid": "prometheus-rabbitmq", "type": "prometheus" },
       "options": { "colorMode": "background", "graphMode": "none", "textMode": "auto" },
       "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "color": "blue", "value": null }] } } },
       "targets": [{ "expr": "sum(notifications_sent_total{job=\"spring-app\"}) or vector(0)", "legendFormat": "Totaal", "refId": "A" }]
     },
 
-    { "id": 5, "type": "row", "title": "Notificatie Status & Fouten", "gridPos": { "x": 0, "y": 20, "w": 24, "h": 1 }, "collapsed": false },
+    { "id": 5, "type": "row", "title": "Notificatie Status & Fouten", "gridPos": { "x": 0, "y": 25, "w": 24, "h": 1 }, "collapsed": false },
 
     {
       "id": 8, "type": "timeseries", "title": "Verstuurd vs Mislukt",
       "description": "Geslaagde vs mislukte notificaties per seconde (door de consumer).",
-      "gridPos": { "x": 0, "y": 21, "w": 24, "h": 8 },
+      "gridPos": { "x": 0, "y": 26, "w": 24, "h": 8 },
       "datasource": { "uid": "prometheus-rabbitmq", "type": "prometheus" },
       "fieldConfig": {
         "defaults": { "unit": "reqps", "custom": { "lineWidth": 2, "fillOpacity": 10 } },
@@ -163,11 +177,11 @@
       ]
     },
 
-    { "id": 9, "type": "row", "title": "RabbitMQ Details", "gridPos": { "x": 0, "y": 29, "w": 24, "h": 1 }, "collapsed": false },
+    { "id": 9, "type": "row", "title": "RabbitMQ Details", "gridPos": { "x": 0, "y": 34, "w": 24, "h": 1 }, "collapsed": false },
 
     {
       "id": 10, "type": "stat", "title": "Connections",
-      "gridPos": { "x": 0, "y": 30, "w": 4, "h": 4 },
+      "gridPos": { "x": 0, "y": 35, "w": 4, "h": 4 },
       "datasource": { "uid": "prometheus-rabbitmq", "type": "prometheus" },
       "options": { "colorMode": "background", "graphMode": "none", "textMode": "auto" },
       "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] } } },
@@ -176,7 +190,7 @@
 
     {
       "id": 11, "type": "stat", "title": "Channels",
-      "gridPos": { "x": 4, "y": 30, "w": 4, "h": 4 },
+      "gridPos": { "x": 4, "y": 35, "w": 4, "h": 4 },
       "datasource": { "uid": "prometheus-rabbitmq", "type": "prometheus" },
       "options": { "colorMode": "background", "graphMode": "none", "textMode": "auto" },
       "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "color": "blue", "value": null }] } } },
@@ -185,7 +199,7 @@
 
     {
       "id": 12, "type": "stat", "title": "Queues",
-      "gridPos": { "x": 8, "y": 30, "w": 4, "h": 4 },
+      "gridPos": { "x": 8, "y": 35, "w": 4, "h": 4 },
       "datasource": { "uid": "prometheus-rabbitmq", "type": "prometheus" },
       "options": { "colorMode": "background", "graphMode": "none", "textMode": "auto" },
       "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "color": "purple", "value": null }] } } },
@@ -194,7 +208,7 @@
 
     {
       "id": 13, "type": "stat", "title": "Consumers",
-      "gridPos": { "x": 12, "y": 30, "w": 4, "h": 4 },
+      "gridPos": { "x": 12, "y": 35, "w": 4, "h": 4 },
       "datasource": { "uid": "prometheus-rabbitmq", "type": "prometheus" },
       "options": { "colorMode": "background", "graphMode": "none", "textMode": "auto" },
       "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "color": "orange", "value": null }] } } },
@@ -203,7 +217,7 @@
 
     {
       "id": 14, "type": "stat", "title": "Messages Ready",
-      "gridPos": { "x": 16, "y": 30, "w": 4, "h": 4 },
+      "gridPos": { "x": 16, "y": 35, "w": 4, "h": 4 },
       "datasource": { "uid": "prometheus-rabbitmq", "type": "prometheus" },
       "options": { "colorMode": "background", "graphMode": "none", "textMode": "auto" },
       "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 100 }, { "color": "red", "value": 1000 }] } } },
@@ -212,7 +226,7 @@
 
     {
       "id": 15, "type": "stat", "title": "Messages Unacked",
-      "gridPos": { "x": 20, "y": 30, "w": 4, "h": 4 },
+      "gridPos": { "x": 20, "y": 35, "w": 4, "h": 4 },
       "datasource": { "uid": "prometheus-rabbitmq", "type": "prometheus" },
       "options": { "colorMode": "background", "graphMode": "none", "textMode": "auto" },
       "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 10 }, { "color": "red", "value": 100 }] } } },
@@ -221,7 +235,7 @@
 
     {
       "id": 16, "type": "timeseries", "title": "Queued Messages",
-      "gridPos": { "x": 0, "y": 34, "w": 24, "h": 8 },
+      "gridPos": { "x": 0, "y": 39, "w": 24, "h": 8 },
       "datasource": { "uid": "prometheus-rabbitmq", "type": "prometheus" },
       "fieldConfig": {
         "defaults": { "custom": { "lineWidth": 2, "fillOpacity": 10 } },
@@ -241,7 +255,7 @@
 
     {
       "id": 17, "type": "timeseries", "title": "Message Rates",
-      "gridPos": { "x": 0, "y": 42, "w": 24, "h": 8 },
+      "gridPos": { "x": 0, "y": 47, "w": 24, "h": 8 },
       "datasource": { "uid": "prometheus-rabbitmq", "type": "prometheus" },
       "fieldConfig": { "defaults": { "unit": "reqps", "custom": { "lineWidth": 2, "fillOpacity": 5 } } },
       "options": { "legend": { "displayMode": "list", "placement": "bottom" } },
@@ -256,7 +270,7 @@
 
     {
       "id": 18, "type": "timeseries", "title": "Connection Operations",
-      "gridPos": { "x": 0, "y": 50, "w": 8, "h": 6 },
+      "gridPos": { "x": 0, "y": 55, "w": 8, "h": 6 },
       "datasource": { "uid": "prometheus-rabbitmq", "type": "prometheus" },
       "fieldConfig": { "defaults": { "unit": "reqps", "custom": { "lineWidth": 2, "fillOpacity": 5 } } },
       "options": { "legend": { "displayMode": "list", "placement": "bottom" } },
@@ -268,7 +282,7 @@
 
     {
       "id": 19, "type": "timeseries", "title": "Channel Operations",
-      "gridPos": { "x": 8, "y": 50, "w": 8, "h": 6 },
+      "gridPos": { "x": 8, "y": 55, "w": 8, "h": 6 },
       "datasource": { "uid": "prometheus-rabbitmq", "type": "prometheus" },
       "fieldConfig": { "defaults": { "unit": "reqps", "custom": { "lineWidth": 2, "fillOpacity": 5 } } },
       "options": { "legend": { "displayMode": "list", "placement": "bottom" } },
@@ -280,7 +294,7 @@
 
     {
       "id": 20, "type": "timeseries", "title": "Queue Operations",
-      "gridPos": { "x": 16, "y": 50, "w": 8, "h": 6 },
+      "gridPos": { "x": 16, "y": 55, "w": 8, "h": 6 },
       "datasource": { "uid": "prometheus-rabbitmq", "type": "prometheus" },
       "fieldConfig": { "defaults": { "unit": "reqps", "custom": { "lineWidth": 2, "fillOpacity": 5 } } },
       "options": { "legend": { "displayMode": "list", "placement": "bottom" } },
@@ -291,12 +305,12 @@
       ]
     },
 
-    { "id": 21, "type": "row", "title": "Applicatie Gezondheid & Foutmeldingen", "gridPos": { "x": 0, "y": 56, "w": 24, "h": 1 }, "collapsed": false },
+    { "id": 21, "type": "row", "title": "Applicatie Gezondheid & Foutmeldingen", "gridPos": { "x": 0, "y": 61, "w": 24, "h": 1 }, "collapsed": false },
 
     {
       "id": 22, "type": "stat", "title": "Notificatie Fouten (laatste uur)",
       "description": "Aantal mislukte notificaties in het afgelopen uur (per provider).",
-      "gridPos": { "x": 0, "y": 57, "w": 8, "h": 4 },
+      "gridPos": { "x": 0, "y": 62, "w": 8, "h": 4 },
       "datasource": { "uid": "prometheus-rabbitmq", "type": "prometheus" },
       "options": { "colorMode": "background", "graphMode": "none", "textMode": "auto" },
       "fieldConfig": { "defaults": { "noValue": "0", "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 1 }, { "color": "red", "value": 5 }] } } },
@@ -306,7 +320,7 @@
     {
       "id": 23, "type": "stat", "title": "JVM Geheugen",
       "description": "Percentage van het JVM heap-geheugen in gebruik.",
-      "gridPos": { "x": 8, "y": 57, "w": 8, "h": 4 },
+      "gridPos": { "x": 8, "y": 62, "w": 8, "h": 4 },
       "datasource": { "uid": "prometheus-rabbitmq", "type": "prometheus" },
       "options": { "colorMode": "background", "graphMode": "area", "textMode": "auto" },
       "fieldConfig": { "defaults": { "noValue": "0", "unit": "percent", "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 70 }, { "color": "red", "value": 90 }] } } },
@@ -316,7 +330,7 @@
     {
       "id": 24, "type": "stat", "title": "CPU Gebruik",
       "description": "CPU-gebruik van het applicatieproces.",
-      "gridPos": { "x": 16, "y": 57, "w": 8, "h": 4 },
+      "gridPos": { "x": 16, "y": 62, "w": 8, "h": 4 },
       "datasource": { "uid": "prometheus-rabbitmq", "type": "prometheus" },
       "options": { "colorMode": "background", "graphMode": "area", "textMode": "auto" },
       "fieldConfig": { "defaults": { "noValue": "0", "unit": "percentunit", "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 0.7 }, { "color": "red", "value": 0.9 }] } } },
@@ -326,7 +340,7 @@
     {
       "id": 25, "type": "timeseries", "title": "Notificatie Slagingspercentage",
       "description": "Mislukte vs geslaagde notificaties per seconde, opgesplitst per provider.",
-      "gridPos": { "x": 0, "y": 61, "w": 12, "h": 8 },
+      "gridPos": { "x": 0, "y": 66, "w": 12, "h": 8 },
       "datasource": { "uid": "prometheus-rabbitmq", "type": "prometheus" },
       "fieldConfig": {
         "defaults": { "unit": "reqps", "custom": { "lineWidth": 2, "fillOpacity": 10 } },
@@ -344,7 +358,7 @@
 
     {
       "id": 26, "type": "timeseries", "title": "JVM Geheugen Over Tijd",
-      "gridPos": { "x": 12, "y": 61, "w": 12, "h": 8 },
+      "gridPos": { "x": 12, "y": 66, "w": 12, "h": 8 },
       "datasource": { "uid": "prometheus-rabbitmq", "type": "prometheus" },
       "fieldConfig": {
         "defaults": { "unit": "bytes", "custom": { "lineWidth": 2, "fillOpacity": 10 } },
@@ -360,12 +374,54 @@
       ]
     },
 
-    { "id": 27, "type": "row", "title": "Applicatie Logs", "gridPos": { "x": 0, "y": 69, "w": 24, "h": 1 }, "collapsed": false },
+    { "id": 40, "type": "row", "title": "Performance & Provider HTTP-fouten", "gridPos": { "x": 0, "y": 74, "w": 24, "h": 1 }, "collapsed": false },
+
+    {
+      "id": 41, "type": "stat", "title": "Gem. verwerkingstijd provider-call",
+      "description": "Gemiddelde duur van een uitgaande provider-call over de laatste 5 minuten.",
+      "gridPos": { "x": 0, "y": 75, "w": 8, "h": 5 },
+      "datasource": { "uid": "prometheus-rabbitmq", "type": "prometheus" },
+      "options": { "colorMode": "background", "graphMode": "area", "textMode": "auto", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "fieldConfig": { "defaults": { "noValue": "0", "unit": "s", "decimals": 3, "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 1 }, { "color": "red", "value": 3 }] } } },
+      "targets": [{ "expr": "(sum(rate(http_client_requests_seconds_sum{job=\"spring-app\"}[5m])) / sum(rate(http_client_requests_seconds_count{job=\"spring-app\"}[5m]))) or vector(0)", "legendFormat": "Gem. latency", "refId": "A" }]
+    },
+
+    {
+      "id": 42, "type": "stat", "title": "Provider server-fouten (5xx, laatste uur)",
+      "description": "Aantal provider-calls met een 5xx-status in het afgelopen uur. Wijst op een provider die down is of intern faalt.",
+      "gridPos": { "x": 8, "y": 75, "w": 8, "h": 5 },
+      "datasource": { "uid": "prometheus-rabbitmq", "type": "prometheus" },
+      "options": { "colorMode": "background", "graphMode": "none", "textMode": "auto" },
+      "fieldConfig": { "defaults": { "noValue": "0", "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "red", "value": 1 }] } } },
+      "targets": [{ "expr": "round(sum(increase(http_client_requests_seconds_count{job=\"spring-app\", status=~\"5..\"}[1h])) or vector(0))", "legendFormat": "5xx", "refId": "A" }]
+    },
+
+    {
+      "id": 43, "type": "stat", "title": "Provider rate limiting (429, laatste uur)",
+      "description": "Aantal provider-calls dat met HTTP 429 (Too Many Requests) is geweigerd in het afgelopen uur.",
+      "gridPos": { "x": 16, "y": 75, "w": 8, "h": 5 },
+      "datasource": { "uid": "prometheus-rabbitmq", "type": "prometheus" },
+      "options": { "colorMode": "background", "graphMode": "none", "textMode": "auto" },
+      "fieldConfig": { "defaults": { "noValue": "0", "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "red", "value": 1 }] } } },
+      "targets": [{ "expr": "round(sum(increase(http_client_requests_seconds_count{job=\"spring-app\", status=\"429\"}[1h])) or vector(0))", "legendFormat": "429", "refId": "A" }]
+    },
+
+    {
+      "id": 45, "type": "timeseries", "title": "Provider HTTP-status over tijd",
+      "description": "Snelheid van uitgaande provider-calls per HTTP-statuscode. Pieken in 4xx/5xx wijzen op provider-problemen.",
+      "gridPos": { "x": 0, "y": 80, "w": 24, "h": 8 },
+      "datasource": { "uid": "prometheus-rabbitmq", "type": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "reqps", "custom": { "lineWidth": 2, "fillOpacity": 10 } } },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "targets": [{ "expr": "sum by (status) (rate(http_client_requests_seconds_count{job=\"spring-app\"}[1m])) or vector(0)", "legendFormat": "{{status}}", "refId": "A" }]
+    },
+
+    { "id": 27, "type": "row", "title": "Applicatie Logs", "gridPos": { "x": 0, "y": 88, "w": 24, "h": 1 }, "collapsed": false },
 
     {
       "id": 28, "type": "logs", "title": "Errors & Warnings (laatste 10 min)",
       "description": "Alleen ERROR en WARN logs van de communicatiemodule.",
-      "gridPos": { "x": 0, "y": 70, "w": 24, "h": 20 },
+      "gridPos": { "x": 0, "y": 89, "w": 24, "h": 20 },
       "datasource": { "uid": "loki", "type": "loki" },
       "timeFrom": "10m",
       "options": { "dedupStrategy": "none", "enableLogDetails": true, "prettifyLogMessage": false, "showCommonLabels": false, "showLabels": false, "showTime": true, "sortOrder": "Descending", "wrapLogMessage": true },
@@ -375,7 +431,7 @@
     {
       "id": 29, "type": "logs", "title": "Info & Debug Logs (laatste 10 min)",
       "description": "Alleen INFO en DEBUG logs van de communicatiemodule via OpenTelemetry.",
-      "gridPos": { "x": 0, "y": 90, "w": 24, "h": 20 },
+      "gridPos": { "x": 0, "y": 109, "w": 24, "h": 20 },
       "datasource": { "uid": "loki", "type": "loki" },
       "timeFrom": "10m",
       "options": { "dedupStrategy": "none", "enableLogDetails": true, "prettifyLogMessage": false, "showCommonLabels": false, "showLabels": false, "showTime": true, "sortOrder": "Descending", "wrapLogMessage": true },

@@ -40,7 +40,9 @@ Of gebruik de zoekfunctie bovenin (het vergrootglas) en zoek op `RabbitMQ`.
 | Mislukte notificaties | Aantal mislukte pogingen (en hoe vaak herproefd) |
 | Dead-letter queue diepte | Aantal berichten dat na maximale herproberingen is gestrand |
 | Berichten per seconde | Doorvoer van de RabbitMQ queue |
-| HTTP fouten (4xx/5xx) | Foutieve verzoeken naar de webhook endpoint |
+| Gem. verwerkingstijd provider-call | Gemiddelde latentie van een uitgaande provider-call |
+| Provider server-fouten (5xx) | Provider-calls die faalden doordat de provider down is of intern faalt |
+| Provider rate limiting (429) | Provider-calls die geweigerd zijn wegens te veel verkeer |
 | JVM geheugengebruik | Gezondheid van de Spring Boot applicatie |
 
 <img width="2560" height="1307" alt="image" src="https://github.com/user-attachments/assets/1a797b7f-b09e-4f7c-b9f3-55c967b46296" />
@@ -93,6 +95,37 @@ body) worden **nooit** gelogd. De echte gegevens herleid je via `notification.id
 `tempo-app`). Het otel-lgtm-image draait Loki op poort 3100 en Tempo op 3200 binnen dezelfde
 container. Komen de labels in jouw omgeving niet overeen (bijv. een andere `service_name`),
 pas dan de queries in `grafana/dashboards/error-tracing.json` aan.
+
+---
+
+## Alerts
+
+Naast de dashboards worden er **alert-regels** automatisch geprovisioned vanuit
+`grafana/provisioning/alerting/alert-rules.yml`. Ze draaien op metrics die al bestaan — er
+zijn dus geen extra exporters of code nodig.
+
+Een alert evalueert elke minuut een PromQL-query en vergelijkt de uitkomst met een drempel.
+Blijft de uitkomst boven/onder de drempel gedurende de ingestelde `for`-duur, dan gaat de
+alert van **Normal → Pending → Firing**. Firing-alerts vind je in Grafana onder
+**Alerting > Alert rules** (map *Alerts*).
+
+| Alert | Wat is er aan de hand | Wanneer firing |
+|---|---|---|
+| Notificaties definitief mislukt | Berichten zijn na alle pogingen niet verstuurd | DLQ-diepte > 0 (≥ 1 min) |
+| Provider blokkeert ons verkeer (429) | Provider weigert ons wegens te veel verzoeken | ≥ 1 provider-call met HTTP 429 in 5 min |
+| Provider heeft een storing (5xx) | Provider geeft serverfouten terug | ≥ 1 provider-call met HTTP 5xx in 5 min |
+| Applicatie niet bereikbaar | De applicatie reageert niet meer | `up{job="spring-app"}` = 0 (≥ 2 min) |
+| RabbitMQ niet bereikbaar | De berichtenwachtrij ligt eruit | `up{job="rabbitmq"}` = 0 (≥ 30 s) |
+| Veel mislukte notificaties | Meerdere berichten komen niet aan | > 5 mislukte notificaties in 5 min |
+| Retry-wachtrij loopt vol | Een provider hapert structureel | > 20 berichten in de retry-wachtrij (≥ 2 min) |
+
+Bovenaan het RabbitMQ-dashboard staat een paneel **"Actieve alerts"**: zodra een regel
+*Firing* of *Pending* wordt, verschijnt die daar (rood) terwijl je naar het dashboard kijkt.
+Is het paneel leeg, dan is alles gezond — je hoeft dus niet naar de Alerting-pagina te klikken.
+
+> **Let op:** de alerts evalueren en tonen hun status in Grafana, maar er is (bewust) géén
+> contactpunt/e-mail gekoppeld — externe notificaties (e-mail/Slack) vereisen SMTP- of
+> webhook-configuratie.
 
 ---
 

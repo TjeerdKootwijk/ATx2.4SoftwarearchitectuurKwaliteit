@@ -1,0 +1,292 @@
+# Grafana alert-regels (unified alerting), automatisch geprovisioned.
+# Draaien op metrics die al bestaan (RabbitMQ-exporter + Spring Actuator/Micrometer +
+# Prometheus 'up'). Geen extra exporters of applicatiecode nodig.
+#
+# Een alert evalueert periodiek (interval) een PromQL-query (refId A) en vergelijkt
+# de uitkomst met een drempel (refId C). Blijft de uitkomst boven/onder de drempel
+# gedurende 'for', dan gaat de alert van Normal -> Pending -> Firing. Firing-alerts
+# zijn zichtbaar in Grafana onder Alerting > Alert rules.
+apiVersion: 1
+
+groups:
+  - orgId: 1
+    name: Alerts
+    folder: Alerts
+    interval: 1m
+    rules:
+
+      # DLQ groeit -> stille mislukking.
+      - uid: alert-dlq-not-empty
+        title: Notificaties definitief mislukt
+        condition: C
+        for: 1m
+        noDataState: OK
+        execErrState: Error
+        labels:
+          severity: critical
+        annotations:
+          summary: Berichten zijn na alle pogingen niet verstuurd en staan in de dead-letter queue.
+          description: >-
+            Een of meer notificaties zijn na alle retries definitief mislukt en op de
+            dead-letter queue beland. Onderzoek de oorzaak via het Foutopsporing-dashboard.
+        data:
+          - refId: A
+            relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: prometheus-rabbitmq
+            model:
+              datasource: { type: prometheus, uid: prometheus-rabbitmq }
+              editorMode: code
+              expr: sum(rabbitmq_queue_messages{queue="notification.dead-letter.queue"}) or vector(0)
+              instant: true
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: A
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              datasource: { type: __expr__, uid: __expr__ }
+              expression: A
+              type: threshold
+              refId: C
+              conditions:
+                - type: query
+                  evaluator: { type: gt, params: [0] }
+                  operator: { type: and }
+                  query: { params: [C] }
+                  reducer: { type: last, params: [] }
+
+      # Provider rate-limiting (HTTP 429).
+      - uid: alert-provider-429
+        title: Provider blokkeert ons verkeer (429)
+        condition: C
+        for: 0m
+        noDataState: OK
+        execErrState: Error
+        labels:
+          severity: warning
+        annotations:
+          summary: Een provider weigert onze berichten omdat we te veel verzoeken sturen (HTTP 429).
+          description: >-
+            In de laatste 5 minuten is minstens een provider-call geweigerd met 429
+            (Too Many Requests). Backoff vangt dit op, maar aanhoudende 429's vertragen
+            notificaties.
+        data:
+          - refId: A
+            relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: prometheus-rabbitmq
+            model:
+              datasource: { type: prometheus, uid: prometheus-rabbitmq }
+              editorMode: code
+              expr: sum(increase(http_client_requests_seconds_count{job="spring-app", status="429"}[5m])) or vector(0)
+              instant: true
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: A
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              datasource: { type: __expr__, uid: __expr__ }
+              expression: A
+              type: threshold
+              refId: C
+              conditions:
+                - type: query
+                  evaluator: { type: gt, params: [0] }
+                  operator: { type: and }
+                  query: { params: [C] }
+                  reducer: { type: last, params: [] }
+
+      # Provider offline / intern kapot -> HTTP 5xx.
+      - uid: alert-provider-5xx
+        title: Provider heeft een storing (5xx)
+        condition: C
+        for: 0m
+        noDataState: OK
+        execErrState: Error
+        labels:
+          severity: warning
+        annotations:
+          summary: Een provider geeft serverfouten terug en kan onze berichten niet verwerken (HTTP 5xx).
+          description: >-
+            In de laatste 5 minuten gaf een provider minstens een 5xx-status terug.
+            Berichten gaan na max retries naar de DLQ; overweeg over te schakelen naar
+            een andere provider.
+        data:
+          - refId: A
+            relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: prometheus-rabbitmq
+            model:
+              datasource: { type: prometheus, uid: prometheus-rabbitmq }
+              editorMode: code
+              expr: sum(increase(http_client_requests_seconds_count{job="spring-app", status=~"5.."}[5m])) or vector(0)
+              instant: true
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: A
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              datasource: { type: __expr__, uid: __expr__ }
+              expression: A
+              type: threshold
+              refId: C
+              conditions:
+                - type: query
+                  evaluator: { type: gt, params: [0] }
+                  operator: { type: and }
+                  query: { params: [C] }
+                  reducer: { type: last, params: [] }
+
+      # Prometheus kan de applicatie niet meer scrapen -> dashboard leeg.
+      - uid: alert-app-metrics-down
+        title: Applicatie niet bereikbaar
+        condition: C
+        for: 2m
+        noDataState: Alerting
+        execErrState: Error
+        labels:
+          severity: critical
+        annotations:
+          summary: De applicatie reageert niet en wordt niet meer gemonitord.
+          description: >-
+            De target spring-app staat op down (up=0). Dashboards worden leeg en
+            operationele problemen worden onzichtbaar.
+        data:
+          - refId: A
+            relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: prometheus-rabbitmq
+            model:
+              datasource: { type: prometheus, uid: prometheus-rabbitmq }
+              editorMode: code
+              expr: min(up{job="spring-app"})
+              instant: true
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: A
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              datasource: { type: __expr__, uid: __expr__ }
+              expression: A
+              type: threshold
+              refId: C
+              conditions:
+                - type: query
+                  evaluator: { type: lt, params: [1] }
+                  operator: { type: and }
+                  query: { params: [C] }
+                  reducer: { type: last, params: [] }
+
+      # Netwerkpartitie / RabbitMQ onbereikbaar.
+      - uid: alert-rabbitmq-down
+        title: RabbitMQ niet bereikbaar
+        condition: C
+        for: 30s
+        noDataState: Alerting
+        execErrState: Error
+        labels:
+          severity: critical
+        annotations:
+          summary: De berichtenwachtrij is niet bereikbaar; er kunnen geen berichten verwerkt worden.
+          description: >-
+            De target rabbitmq staat op down (up=0). Berichten kunnen niet gepubliceerd
+            of gelezen worden.
+        data:
+          - refId: A
+            relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: prometheus-rabbitmq
+            model:
+              datasource: { type: prometheus, uid: prometheus-rabbitmq }
+              editorMode: code
+              expr: min(up{job="rabbitmq"})
+              instant: true
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: A
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              datasource: { type: __expr__, uid: __expr__ }
+              expression: A
+              type: threshold
+              refId: C
+              conditions:
+                - type: query
+                  evaluator: { type: lt, params: [1] }
+                  operator: { type: and }
+                  query: { params: [C] }
+                  reducer: { type: last, params: [] }
+
+      # Veel berichten mislukken (ook bij provider offline of DNS-fout, niet alleen 4xx/5xx).
+      - uid: alert-veel-mislukt
+        title: Veel mislukte notificaties
+        condition: C
+        for: 0m
+        noDataState: OK
+        execErrState: Error
+        labels:
+          severity: warning
+        annotations:
+          summary: Meerdere notificaties zijn de afgelopen vijf minuten niet aangekomen.
+        data:
+          - refId: A
+            relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: prometheus-rabbitmq
+            model:
+              datasource: { type: prometheus, uid: prometheus-rabbitmq }
+              editorMode: code
+              expr: sum(increase(notifications_sent_total{job="spring-app", status="failed"}[5m])) or vector(0)
+              instant: true
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: A
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              datasource: { type: __expr__, uid: __expr__ }
+              expression: A
+              type: threshold
+              refId: C
+              conditions:
+                - type: query
+                  evaluator: { type: gt, params: [5] }
+                  operator: { type: and }
+                  query: { params: [C] }
+                  reducer: { type: last, params: [] }
+
+      # Retry-wachtrijen lopen vol -> een provider hapert structureel.
+      - uid: alert-retry-vol
+        title: Retry-wachtrij loopt vol
+        condition: C
+        for: 2m
+        noDataState: OK
+        execErrState: Error
+        labels:
+          severity: warning
+        annotations:
+          summary: Er staan veel berichten te wachten op een nieuwe poging; mogelijk een provider die hapert.
+        data:
+          - refId: A
+            relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: prometheus-rabbitmq
+            model:
+              datasource: { type: prometheus, uid: prometheus-rabbitmq }
+              editorMode: code
+              expr: sum(rabbitmq_queue_messages{queue=~"notification.retry.queue.*"}) or vector(0)
+              instant: true
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: A
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              datasource: { type: __expr__, uid: __expr__ }
+              expression: A
+              type: threshold
+              refId: C
+              conditions:
+                - type: query
+                  evaluator: { type: gt, params: [20] }
+                  operator: { type: and }
+                  query: { params: [C] }
+                  reducer: { type: last, params: [] }
