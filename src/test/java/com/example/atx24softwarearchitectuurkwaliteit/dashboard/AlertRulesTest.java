@@ -60,6 +60,29 @@ class AlertRulesTest {
         throw new AssertionError("Regel '" + rule.get("title") + "' heeft geen PromQL-expr");
     }
 
+    /** Haalt de eerste drempelwaarde (evaluator param) op uit een regel. */
+    @SuppressWarnings("unchecked")
+    private Number thresholdOf(Map<String, Object> rule) {
+        List<Map<String, Object>> data = (List<Map<String, Object>>) rule.get("data");
+        for (Map<String, Object> d : data) {
+            Map<String, Object> model = (Map<String, Object>) d.get("model");
+            List<Map<String, Object>> conditions = (List<Map<String, Object>>) model.get("conditions");
+            if (conditions == null) {
+                continue;
+            }
+            for (Map<String, Object> cond : conditions) {
+                Map<String, Object> evaluator = (Map<String, Object>) cond.get("evaluator");
+                if (evaluator != null) {
+                    List<Object> params = (List<Object>) evaluator.get("params");
+                    if (params != null && !params.isEmpty()) {
+                        return (Number) params.get(0);
+                    }
+                }
+            }
+        }
+        throw new AssertionError("Geen drempel gevonden in alert " + rule.get("uid"));
+    }
+
     @Test
     void allExpectedAlertsArePresent() throws IOException {
         Set<String> expected = Set.of(
@@ -100,6 +123,30 @@ class AlertRulesTest {
         String expr = exprOf(ruleByUid("alert-provider-429"));
         assertTrue(expr.contains("status=\"429\""),
                 "De rate-limit-alert moet op HTTP 429 letten, was: " + expr);
+    }
+
+    @Test
+    void providerErrorAlert_watchesHttp5xx() throws IOException {
+        String expr = exprOf(ruleByUid("alert-provider-5xx"));
+        assertTrue(expr.contains("status=~\"5..\""),
+                "De provider-storing-alert moet op HTTP 5xx letten, was: " + expr);
+    }
+
+    @Test
+    void retryQueueAlert_watchesRetryQueuesAboveTwenty() throws IOException {
+        Map<String, Object> rule = ruleByUid("alert-retry-vol");
+        assertTrue(exprOf(rule).contains("notification.retry.queue"),
+                "De retry-alert moet de retry-queues bewaken, was: " + exprOf(rule));
+        assertEquals(20, thresholdOf(rule).intValue(),
+                "De retry-alert hoort bij > 20 wachtende berichten te vuren");
+    }
+
+    @Test
+    void downAlerts_watchTheUpMetricPerTarget() throws IOException {
+        assertTrue(exprOf(ruleByUid("alert-app-metrics-down")).contains("up{job=\"spring-app\"}"),
+                "De app-down-alert moet de up-metric van spring-app bewaken");
+        assertTrue(exprOf(ruleByUid("alert-rabbitmq-down")).contains("up{job=\"rabbitmq\"}"),
+                "De rabbitmq-down-alert moet de up-metric van rabbitmq bewaken");
     }
 
     @Test

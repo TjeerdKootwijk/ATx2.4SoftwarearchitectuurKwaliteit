@@ -30,6 +30,8 @@ class RabbitMqDashboardTest {
 
     private static final Path DASHBOARD = Path.of("grafana/dashboards/rabbitmq.json");
     private static final Path PROMETHEUS = Path.of("prometheus.yml");
+    private static final Path RABBITMQ_DATASOURCE =
+            Path.of("grafana/provisioning/datasources/rabbitmq-prometheus.yml");
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private JsonNode dashboard() throws IOException {
@@ -136,6 +138,20 @@ class RabbitMqDashboardTest {
     void hasErrorAndWarnLogsPanel() throws IOException {
         assertTrue(anyExprContains("detected_level"),
                 "Er hoort een logspaneel te zijn dat op ERROR/WARN filtert");
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void prometheusDatasource_isActuallyProvisioned() throws IOException {
+        // De metricpanelen wijzen op uid 'prometheus-rabbitmq'. Staat die datasource niet in
+        // de provisioning, dan blijft het hele dashboard leeg zonder dat iets het opmerkt.
+        assertTrue(Files.exists(RABBITMQ_DATASOURCE),
+                "Datasource-config ontbreekt: " + RABBITMQ_DATASOURCE.toAbsolutePath());
+        Map<String, Object> root = new Yaml().load(Files.readString(RABBITMQ_DATASOURCE));
+        List<Map<String, Object>> datasources = (List<Map<String, Object>>) root.get("datasources");
+        boolean found = datasources.stream().anyMatch(ds ->
+                "prometheus-rabbitmq".equals(ds.get("uid")) && "prometheus".equals(ds.get("type")));
+        assertTrue(found, "Datasource 'prometheus-rabbitmq' (type prometheus) moet geprovisioned zijn");
     }
 
     // ── Kruis-consistentie met Prometheus ────────────────────────────────────
