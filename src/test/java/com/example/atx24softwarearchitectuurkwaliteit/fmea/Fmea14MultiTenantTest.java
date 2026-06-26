@@ -20,7 +20,9 @@ class Fmea14MultiTenantTest extends FmeaBaseTest {
 
     @Test
     void actieve_tenant_wordt_herkend_als_geldig() {
-        assertThat(dataService.isTenantValid("test-tenant"))
+        opslaanActieveTenant("fmea14-actieve-tenant");
+
+        assertThat(dataService.isTenantValid("fmea14-actieve-tenant"))
                 .as("Actieve tenant moet als geldig worden herkend")
                 .isTrue();
     }

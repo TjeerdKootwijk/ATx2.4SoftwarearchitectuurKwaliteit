@@ -2,6 +2,8 @@ package com.example.atx24softwarearchitectuurkwaliteit.fmea;
 
 import com.example.atx24softwarearchitectuurkwaliteit.dao.NotificationLogDAO;
 import com.example.atx24softwarearchitectuurkwaliteit.dao.ProcessedEventDAO;
+import com.example.atx24softwarearchitectuurkwaliteit.dao.TenantDAO;
+import com.example.atx24softwarearchitectuurkwaliteit.model.entity.TenantEntity;
 import com.example.atx24softwarearchitectuurkwaliteit.fhir.FhirAppointmentValidator;
 import com.example.atx24softwarearchitectuurkwaliteit.fhir.OpenMrsRestAppointmentFetcher;
 import com.example.atx24softwarearchitectuurkwaliteit.messaging.queue.RabbitMQConsumer;
@@ -69,6 +71,7 @@ abstract class FmeaBaseTest {
     @MockBean
     RabbitTemplate rabbitTemplate;
 
+    @Autowired TenantDAO tenantDAO;
     @Autowired RabbitMQConsumer consumer;
     @Autowired Jackson2JsonMessageConverter messageConverter;
     @Autowired NotificationLogDAO notificationLogDAO;
@@ -117,6 +120,18 @@ abstract class FmeaBaseTest {
         return new NotificationQueueMessage(
                 UUID.randomUUID(), tenantId, "+31600000001",
                 "FMEA Test", "Testbericht", ProviderType.SWIFTSEND, "SMS", Instant.now());
+    }
+
+    TenantEntity opslaanActieveTenant(String tenantId) {
+        TenantEntity tenant = new TenantEntity();
+        tenant.setTenantId(tenantId);
+        tenant.setOrganizationName("Test Ziekenhuis " + tenantId);
+        tenant.setOpenMrsBaseUrl("http://localhost:19880");
+        tenant.setOpenMrsUsername("admin");
+        tenant.setOpenMrsPassword("admin");
+        tenant.setNotificationProvider("SWIFTSEND");
+        tenant.setActive(true);
+        return tenantDAO.save(tenant);
     }
 
     void stubProviderSucces() {
