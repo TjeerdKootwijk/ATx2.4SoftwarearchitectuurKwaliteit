@@ -89,7 +89,7 @@ class CharacterEncodingTest {
      *
      * Achtergrond: SwiftSend serialiseert het bericht via Jackson naar JSON.
      * JSON-strings zijn per definitie UTF-8, maar de test bewijst dat er geen
-     * onnodige escaping (bijv. \uXXXX) of tekenverlies optreedt.
+     * onnodige escaping of tekenverlies optreedt.
      */
     @Test
     void swiftsend_verzendt_chinese_tekens_correct_als_utf8() {
