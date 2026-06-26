@@ -161,13 +161,13 @@ services:
       context: ./Scripts
       dockerfile: Dockerfile
     container_name: atx24-seed-data
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
-      fake-openmrs:
-        condition: service_started
       app:
         condition: service_healthy
     environment:
-      OPENMRS_BASE_URL: http://fake-openmrs:8090
+      OPENMRS_BASE_URL: http://host.docker.internal
     restart: "no"
 volumes:
   postgres-data:
