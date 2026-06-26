@@ -39,21 +39,18 @@ over (skipped) en blijft de build groen. Hij breekt dus nooit je gewone testrond
 
 2. Zoek de naam van het Docker-netwerk van de stack (hangt af van je projectmap):
    ```
-   docker network ls | grep atx
+   docker network ls | findstr atx
    ```
    Bijvoorbeeld `atx24softwarearchitectuurkwaliteit_default`.
 
 3. Draai de systeemtest in een container op datzelfde netwerk, zodat hij Grafana via de
    servicenaam `lgtm:3000` kan bereiken. `cleanTest` forceert dat de test echt opnieuw draait
-   (anders gebruikt Gradle een gecachet resultaat):
+   (anders gebruikt Gradle een gecachet resultaat). Eén regel in CMD:
    ```
-   docker run --rm --network atx24softwarearchitectuurkwaliteit_default \
-     -e GRAFANA_URL=http://lgtm:3000 \
-     -v "${PWD}:/app" -w /app gradle:8.10-jdk21 \
-     gradle cleanTest test --tests "*DashboardSystemTest" --console=plain
+   docker run --rm --network atx24softwarearchitectuurkwaliteit_default -e GRAFANA_URL=http://lgtm:3000 -v "%cd%:/app" -w /app gradle:8.10-jdk21 gradle cleanTest test --tests "*DashboardSystemTest" --console=plain
    ```
 
-4. Resultaat staat in `build/reports/tests/test/index.html`.
+De uitslag zie je direct in je terminal.
 
 De Grafana-URL is instelbaar via de omgevingsvariabele `GRAFANA_URL` (standaard
 `http://localhost:3000`, handig als je ooit vanuit een IDE draait). Login is `admin` / `admin`.

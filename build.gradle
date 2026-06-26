@@ -65,4 +65,31 @@ dependencies {
 
 tasks.named('test') {
 	useJUnitPlatform()
+
+	// Maak per test zichtbaar in de console wat er gebeurt, zodat 'BUILD SUCCESSFUL' niet kan
+	// verbergen dat tests in werkelijkheid zijn overgeslagen (bv. systeemtest zonder draaiende stack).
+	testLogging {
+		events "passed", "skipped", "failed"
+		exceptionFormat = "short"
+	}
+
+	// Duidelijke eindtelling onderaan de testrun.
+	afterSuite { desc, result ->
+		if (desc.parent == null) {
+			println ""
+			println "==================== TESTRESULTAAT ===================="
+			println "  Totaal      : ${result.testCount}"
+			println "  Geslaagd    : ${result.successfulTestCount}"
+			println "  Overgeslagen: ${result.skippedTestCount}"
+			println "  Mislukt     : ${result.failedTestCount}"
+			if (result.failedTestCount > 0) {
+				println "  >> ER ZIJN TESTS MISLUKT."
+			} else if (result.skippedTestCount > 0) {
+				println "  >> LET OP: er zijn tests OVERGESLAGEN (draait de stack wel?)."
+			} else {
+				println "  >> ALLES ECHT UITGEVOERD EN GESLAAGD."
+			}
+			println "======================================================="
+		}
+	}
 }

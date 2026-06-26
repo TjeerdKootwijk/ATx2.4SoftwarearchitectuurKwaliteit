@@ -11,16 +11,16 @@ Tests draaien in Docker (JDK 21), vanuit de projectmap.
 Alle dashboard tests:
 
 ```
-docker run --rm -v "${PWD}:/app" -w /app gradle:8.10-jdk21 gradle test --tests "*dashboard*"
+docker run --rm -v "%cd%:/app" -w /app gradle:8.10-jdk21 gradle test --tests "*dashboard*"
 ```
 
 Eén klasse (voorbeeld):
 
 ```
-docker run --rm -v "${PWD}:/app" -w /app gradle:8.10-jdk21 gradle test --tests "*RabbitMqDashboardTest"
+docker run --rm -v "%cd%:/app" -w /app gradle:8.10-jdk21 gradle test --tests "*RabbitMqDashboardTest"
 ```
 
-Rapport na afloop: `build/reports/tests/test/index.html`.
+De uitslag zie je direct in je terminal.
 
 ## Overzicht van de klassen
 
