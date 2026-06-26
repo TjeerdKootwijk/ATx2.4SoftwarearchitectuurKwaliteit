@@ -9,6 +9,7 @@ Gebruik:
 Pas de CONFIG sectie onderaan aan voor jouw omgeving.
 """
 
+import os
 import requests
 import json
 import sys
@@ -21,9 +22,9 @@ if sys.stdout.encoding != "utf-8":
 # ── Configuratie ──────────────────────────────────────────────────────────────
 
 CONFIG = {
-    "base_url":  "http://localhost",
-    "username":  "admin",
-    "password":  "Admin123",
+    "base_url":  os.environ.get("OPENMRS_BASE_URL", "http://localhost"),
+    "username":  os.environ.get("OPENMRS_USERNAME", "admin"),
+    "password":  os.environ.get("OPENMRS_PASSWORD", "Admin123"),
 }
 
 # ── Sessie setup ──────────────────────────────────────────────────────────────
@@ -153,8 +154,8 @@ def genereer_openmrs_id() -> tuple[str, str]:
                 if r2.status_code == 200:
                     body = r2.json()
                     gegenereerd_id = (
-                        body.get("identifier")
-                        or (body.get("identifiers") or [None])[0]
+                            body.get("identifier")
+                            or (body.get("identifiers") or [None])[0]
                     )
                     if gegenereerd_id:
                         openmrs_id_type_uuid = "05a29f94-c0ed-11e2-94be-8c13b969e334"
@@ -336,7 +337,7 @@ def verifieer(patient_uuid: str, appointment_uuid: str):
 #   "vandaag"      → afspraak vandaag 17:00 → zichtbaar in OpenMRS UI (vandaag-filter)
 #   "custom"       → gebruik CUSTOM_START hieronder
 
-TEST_SCENARIO = "nu_plus_25u"
+TEST_SCENARIO = os.environ.get("TEST_SCENARIO", "nu_plus_25u")
 CUSTOM_START  = datetime(2026, 6, 1, 9, 0, 0, tzinfo=timezone.utc)  # alleen bij "custom"
 
 # Patienten
@@ -380,7 +381,10 @@ def bereken_start(scenario: str) -> datetime:
 
 # ── Hoofdprogramma ────────────────────────────────────────────────────────────
 
-if __name__ == "__main__":
+def main() -> int:
+    """Voert het volledige seed-proces uit.
+    Geeft 0 terug bij succes, 1 bij een fout. Print zelf de foutmelding,
+    zodat de aanroeper (zie onderaan) altijd een schone sys.exit() kan doen."""
     try:
         login()
 
@@ -438,7 +442,18 @@ if __name__ == "__main__":
         print(f"  Body: {{\"startDate\": \"{start_str}\", \"endDate\": \"{eind_str}\"}}")
         print("=" * 60 + "\n")
 
+        return 0
+
     except Exception as e:
         print(f"\n[FOUT] {e}")
-        raise
-        raise
+        return 1
+
+
+if __name__ == "__main__":
+    # main() geeft altijd 0 (succes) of 1 (fout) terug. sys.exit() zorgt
+    # ervoor dat het proces in alle gevallen -- succes of fout -- meteen
+    # en met de juiste exit-code stopt, ook binnen een Docker-container.
+    exit_code = main()
+    sys.stdout.flush()
+    sys.stderr.flush()
+    sys.exit(exit_code)
