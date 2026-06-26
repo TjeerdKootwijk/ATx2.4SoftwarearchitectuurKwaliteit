@@ -47,10 +47,38 @@ over (skipped) en blijft de build groen. Hij breekt dus nooit je gewone testrond
    servicenaam `lgtm:3000` kan bereiken. `cleanTest` forceert dat de test echt opnieuw draait
    (anders gebruikt Gradle een gecachet resultaat). Eén regel in CMD:
    ```
-   docker run --rm --network atx24softwarearchitectuurkwaliteit_default -e GRAFANA_URL=http://lgtm:3000 -v "%cd%:/app" -w /app gradle:8.10-jdk21 gradle cleanTest test --tests "*DashboardSystemTest" --console=plain
+   docker run --rm --network atx24softwarearchitectuurkwaliteit_default -e GRAFANA_URL=http://lgtm:3000 -v "%cd%:/app" -w /app gradle:8.10-jdk21 gradle cleanTest test --tests "*DashboardSystemTest" -PincludeSystem --console=plain
    ```
 
 De uitslag zie je direct in je terminal.
+
+### Snel draaien (alleen de telling)
+
+Verse stack opstarten en daarna enkel de dashboard system-test draaien. Drie commando's
+in cmd, in deze volgorde:
+
+```
+docker compose down
+```
+
+```
+docker compose up --build -d
+```
+
+Wacht tot alles gezond is (ongeveer 1 tot 2 minuten) en draai dan:
+
+```
+docker run --rm --network atx24softwarearchitectuurkwaliteit_default -e GRAFANA_URL=http://lgtm:3000 -v "%cd%:/app" -w /app gradle:8.10-jdk21 gradle cleanTest test --tests "*.dashboard.DashboardSystemTest" -PincludeSystem --console=plain 2>nul | findstr /C:"Totaal" /C:"Geslaagd" /C:"Mislukt" /C:"Overgeslagen"
+```
+
+Uitvoer:
+
+```
+  Totaal      : 7
+  Geslaagd    : 7
+  Overgeslagen: 0
+  Mislukt     : 0
+```
 
 De Grafana-URL is instelbaar via de omgevingsvariabele `GRAFANA_URL` (standaard
 `http://localhost:3000`, handig als je ooit vanuit een IDE draait). Login is `admin` / `admin`.

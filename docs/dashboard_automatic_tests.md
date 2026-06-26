@@ -22,6 +22,23 @@ docker run --rm -v "%cd%:/app" -w /app gradle:8.10-jdk21 gradle test --tests "*R
 
 De uitslag zie je direct in je terminal.
 
+### Snel draaien (alleen de telling)
+
+Voor enkel de dashboard unit-tests met een korte uitslag. Eén regel in cmd:
+
+```
+docker run --rm -v "%cd%:/app" -w /app gradle:8.10-jdk21 gradle cleanTest test --tests "*.dashboard.*" --console=plain 2>nul | findstr /C:"Totaal" /C:"Geslaagd" /C:"Mislukt" /C:"Overgeslagen"
+```
+
+Uitvoer:
+
+```
+  Totaal      : 51
+  Geslaagd    : 51
+  Overgeslagen: 0
+  Mislukt     : 0
+```
+
 ## Overzicht van de klassen
 
 | Klasse | Wat het bewaakt | Tests |
