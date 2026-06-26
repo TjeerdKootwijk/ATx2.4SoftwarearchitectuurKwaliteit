@@ -1,0 +1,38 @@
+apiVersion: 1
+
+# Loki (logs) en Tempo (traces) datasources voor het Foutopsporing-dashboard.
+# Het otel-lgtm-image draait Loki intern op poort 3100 en Tempo op 3200; Grafana zit
+# in dezelfde container, dus localhost. Eigen UID's (loki-app/tempo-app) en namen zodat
+# ze niet clashen met de datasources die het image zelf al provisioneert.
+datasources:
+  - name: Loki (Communicatiemodule)
+    uid: loki-app
+    type: loki
+    access: proxy
+    url: http://localhost:3100
+    isDefault: false
+    editable: false
+    jsonData:
+      # Maakt van het trace_id-veld op elke (error)logregel een klikbare link naar de
+      # volledige trace in Tempo. Zo spring je van een fout direct naar de exacte spans.
+      derivedFields:
+        - name: trace_id
+          matcherType: label
+          matcherRegex: trace_id
+          datasourceUid: tempo-app
+          url: '${__value.raw}'
+          urlDisplayLabel: 'Open trace in Tempo'
+
+  - name: Tempo (Communicatiemodule)
+    uid: tempo-app
+    type: tempo
+    access: proxy
+    url: http://localhost:3200
+    isDefault: false
+    editable: false
+    jsonData:
+      # Vanuit een trace terug naar de bijbehorende logregels in Loki.
+      tracesToLogsV2:
+        datasourceUid: loki-app
+        filterByTraceID: true
+        filterBySpanID: false

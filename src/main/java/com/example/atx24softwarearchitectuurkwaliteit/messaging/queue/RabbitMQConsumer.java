@@ -9,6 +9,7 @@ import com.example.atx24softwarearchitectuurkwaliteit.provider.MessagingProvider
 import com.example.atx24softwarearchitectuurkwaliteit.provider.MessagingProviderFactory;
 import com.example.atx24softwarearchitectuurkwaliteit.provider.ProviderSendResult;
 import com.example.atx24softwarearchitectuurkwaliteit.service.DataService;
+import com.example.atx24softwarearchitectuurkwaliteit.service.logging.NotificationDiagnosticContext;
 import io.micrometer.core.instrument.MeterRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -56,9 +57,41 @@ public class RabbitMQConsumer {
 
     @RabbitListener(queues = RabbitMQConfig.NOTIFICATION_QUEUE)
     public void consume(Message rawMessage) {
-        NotificationQueueMessage message = (NotificationQueueMessage) messageConverter.fromMessage(rawMessage);
-        RetryContext context = RetryContext.fromMessageProperties(rawMessage.getMessageProperties());
+        NotificationQueueMessage message;
+        RetryContext context;
+        try {
+            message = (NotificationQueueMessage) messageConverter.fromMessage(rawMessage);
+            context = RetryContext.fromMessageProperties(rawMessage.getMessageProperties());
+        } catch (Exception e) {
+            // Het bericht kon niet eens worden gelezen. Log de volledige stacktrace zodat de
+            // precieze regel waar deserialisatie faalt herleidbaar is in Grafana; gooi door
+            // zodat de broker het bericht naar de dead-letter queue stuurt.
+            log.error("Notificatiebericht kon niet worden gedeserialiseerd", e);
+            throw e;
+        }
 
+        // Zet de niet-PII input-context (notificationId, tenant, provider, messageType, poging)
+        // op de MDC, zodat ELKE logregel tijdens deze verwerking — inclusief stacktraces van
+        // fouten dieper in de pijplijn — herleidbaar is naar de ingevulde gegevens (FR2/NFR11).
+        int attempt = context.retryCount() + 1;
+        // De catch staat BINNEN de context-scope: bij try-with-resources wordt de resource
+        // gesloten vóór een catch op dezelfde try, dus zou de MDC al opgeruimd zijn op het
+        // moment van loggen. Door te nesten draagt ook de boundary-foutlog de input-context.
+        try (NotificationDiagnosticContext ignored = NotificationDiagnosticContext.open(message, attempt)) {
+            try {
+                process(message, context, rawMessage);
+            } catch (Exception e) {
+                // Onverwachte fout in de verwerkingspijplijn (bv. onbekende provider, DB-fout).
+                // Log de volledige stacktrace met de input-context erbij, zodat de fout in het
+                // Foutopsporing-dashboard herleidbaar is tot de precieze regel met de ingevulde
+                // gegevens, en route het bericht via dezelfde retry/dead-letter-afhandeling.
+                log.error("Notificatieverwerking mislukt", e);
+                retryHandler.onFailure(rawMessage, message);
+            }
+        }
+    }
+
+    private void process(NotificationQueueMessage message, RetryContext context, Message rawMessage) {
         log.info("------------------------------------------------");
         log.info("Notification received | attempt={}/{} | id={}",
                 context.retryCount() + 1,

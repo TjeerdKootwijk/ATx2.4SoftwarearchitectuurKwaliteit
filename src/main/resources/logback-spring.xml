@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Console-logconfiguratie die de diagnostische input-context (MDC) zichtbaar maakt.
+
+  De OpenTelemetry-agent exporteert deze MDC-velden los naar Loki en voegt zelf
+  trace_id/span_id toe; dit pattern zorgt dat dezelfde context ook lokaal in de
+  console-logs leesbaar is. De agent instrumenteert logback onafhankelijk van dit
+  bestand, dus log-export naar de LGTM-stack blijft werken.
+
+  De keys (notification.id, tenant.id, provider, message.type, attempt) worden gezet
+  door NotificationDiagnosticContext. Geen persoonsgegevens (NFR4/NFR11).
+-->
+<configuration>
+    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+
+    <property name="CONSOLE_LOG_PATTERN"
+              value="%d{yyyy-MM-dd HH:mm:ss.SSS} %highlight(%-5level) [trace=%X{trace_id:-} notif=%X{notification.id:-} tenant=%X{tenant.id:-} provider=%X{provider:-} type=%X{message.type:-} attempt=%X{attempt:-}] %cyan(%logger{36}) - %msg%n"/>
+
+    <include resource="org/springframework/boot/logging/logback/console-appender.xml"/>
+
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+    </root>
+</configuration>
