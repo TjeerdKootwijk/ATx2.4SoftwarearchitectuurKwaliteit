@@ -56,4 +56,28 @@ public class AsyncFlowClient implements AsyncFlowService {
                 })
                 .block();
     }
+
+    @Override
+    public AsyncFlowStatusResponse getStatus(String trackingId) {
+        return webClient.get()
+                .uri("/asyncflow/{trackingId}", trackingId)
+                .header("X-API-KEY", apiKey)
+                .header("X-STUDENT-GROUP", studentGroup)
+                .retrieve()
+                .onStatus(HttpStatusCode::isError, clientResponse ->
+                        clientResponse.bodyToMono(String.class).flatMap(body -> {
+                            log.warn("AsyncFlow status lookup error: {} - body: {}",
+                                    clientResponse.statusCode(), body);
+                            return Mono.error(new AsyncFlowException(
+                                    "AsyncFlow status error: " + clientResponse.statusCode()));
+                        })
+                )
+                .bodyToMono(AsyncFlowStatusResponse.class)
+                .onErrorResume(error -> {
+                    log.warn("Kon AsyncFlow status niet ophalen voor trackingId={}: {}",
+                            trackingId, error.getMessage());
+                    return Mono.empty();
+                })
+                .block();
+    }
 }

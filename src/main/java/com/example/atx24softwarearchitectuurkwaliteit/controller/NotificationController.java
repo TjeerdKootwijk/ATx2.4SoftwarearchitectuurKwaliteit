@@ -81,11 +81,14 @@ public class NotificationController {
     }
 
     @PostMapping("/test")
-    public ResponseEntity<String> testNotification(@RequestParam(defaultValue = "SWIFTSEND") String providerType) {
+    public ResponseEntity<String> testNotification(
+            @RequestParam(defaultValue = "SWIFTSEND") String providerType,
+            @RequestParam(defaultValue = "test-tenant") String tenantId,
+            @RequestParam(defaultValue = "+120312031230") String recipient) {
         NotificationQueueMessage testMessage = new NotificationQueueMessage(
                 UUID.randomUUID(),
-                "test-tenant",
-                "+120312031230",
+                tenantId,
+                recipient,
                 "Appointment Reminder",
                 "This is a test notification.",
                 providerType.toUpperCase(),
