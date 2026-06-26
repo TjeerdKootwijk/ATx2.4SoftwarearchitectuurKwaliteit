@@ -1,9 +1,11 @@
 package com.example.atx24softwarearchitectuurkwaliteit.service;
 
+import com.example.atx24softwarearchitectuurkwaliteit.dao.AsyncFlowTrackingDAO;
 import com.example.atx24softwarearchitectuurkwaliteit.dao.NotificationLogDAO;
 import com.example.atx24softwarearchitectuurkwaliteit.dao.ProcessedEventDAO;
 import com.example.atx24softwarearchitectuurkwaliteit.dao.TenantDAO;
 import com.example.atx24softwarearchitectuurkwaliteit.model.TenantConfiguration;
+import com.example.atx24softwarearchitectuurkwaliteit.model.entity.AsyncFlowTrackingEntity;
 import com.example.atx24softwarearchitectuurkwaliteit.model.entity.NotificationLogEntity;
 import com.example.atx24softwarearchitectuurkwaliteit.model.entity.ProcessedEventEntity;
 import com.example.atx24softwarearchitectuurkwaliteit.model.entity.TenantEntity;
@@ -15,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -36,13 +39,16 @@ public class DataService {
     private final TenantDAO tenantDAO;
     private final ProcessedEventDAO processedEventDAO;
     private final NotificationLogDAO notificationLogDAO;
+    private final AsyncFlowTrackingDAO asyncFlowTrackingDAO;
 
     public DataService(TenantDAO tenantDAO,
                        ProcessedEventDAO processedEventDAO,
-                       NotificationLogDAO notificationLogDAO) {
+                       NotificationLogDAO notificationLogDAO,
+                       AsyncFlowTrackingDAO asyncFlowTrackingDAO) {
         this.tenantDAO = tenantDAO;
         this.processedEventDAO = processedEventDAO;
         this.notificationLogDAO = notificationLogDAO;
+        this.asyncFlowTrackingDAO = asyncFlowTrackingDAO;
     }
 
     // ── Tenant operations ────────────────────────────────────────────────────
@@ -144,6 +150,36 @@ public class DataService {
         log.setErrorMessage(errorMessage);
         log.setRetryCount(retryCount);
         notificationLogDAO.save(log);
+    }
+
+    // ── AsyncFlow afleverstatus-tracking ─────────────────────────────────────
+
+    /**
+     * Registreert een door AsyncFlow geaccepteerd (maar nog niet afgeleverd) bericht,
+     * zodat de {@code AsyncFlowStatusPoller} de definitieve status later kan ophalen.
+     * Slaat geen patiëntdata of berichtinhoud op (NFR11).
+     */
+    public void saveAsyncFlowPending(String trackingId, String notificationId,
+                                     String tenantId, int retryCount) {
+        AsyncFlowTrackingEntity entity = new AsyncFlowTrackingEntity(
+                trackingId, notificationId, tenantId, retryCount, LocalDateTime.now());
+        asyncFlowTrackingDAO.save(entity);
+        logger.debug("AsyncFlow tracking opgeslagen: trackingId='{}' (PENDING)", trackingId);
+    }
+
+    @Transactional(readOnly = true)
+    public List<AsyncFlowTrackingEntity> findPendingAsyncFlow(int limit) {
+        return asyncFlowTrackingDAO.findByStatus("PENDING", limit);
+    }
+
+    /** Verwijdert een tracking-record nadat de definitieve uitkomst is verwerkt. */
+    public void deleteAsyncFlowTracking(AsyncFlowTrackingEntity entity) {
+        asyncFlowTrackingDAO.delete(entity);
+    }
+
+    /** Werkt een tracking-record bij (bijv. poll_count / last_checked_at) zonder het te verwijderen. */
+    public void updateAsyncFlowTracking(AsyncFlowTrackingEntity entity) {
+        asyncFlowTrackingDAO.save(entity);
     }
 
     // ── Scheduled cleanup ────────────────────────────────────────────────────

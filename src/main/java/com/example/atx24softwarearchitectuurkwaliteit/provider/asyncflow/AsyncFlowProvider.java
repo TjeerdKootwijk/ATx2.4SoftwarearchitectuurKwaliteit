@@ -44,8 +44,11 @@ public class AsyncFlowProvider implements MessagingProvider {
             AsyncFlowResponse response = asyncFlowService.send(request);
 
             if (response != null && response.isAccepted()) {
-                log.info("AsyncFlow message queued successfully with ID: {}", response.getTrackingId());
-                return ProviderSendResult.send(response.getTrackingId());
+                log.info("AsyncFlow message accepted (async) with trackingId: {} — delivery status will be polled",
+                        response.getTrackingId());
+                // AsyncFlow is asynchroon: 'accepted' betekent aangenomen, niet afgeleverd.
+                // De AsyncFlowStatusPoller controleert de werkelijke afleverstatus later.
+                return ProviderSendResult.pending(response.getTrackingId());
             } else {
                 String errMsg = response != null ? response.getMessage() : "No response from AsyncFlow";
                 log.warn("AsyncFlow message failed to queue: {}", errMsg);

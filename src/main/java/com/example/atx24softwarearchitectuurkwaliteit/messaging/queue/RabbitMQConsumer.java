@@ -125,6 +125,20 @@ public class RabbitMQConsumer {
             return;
         }
 
+        // Asynchrone provider (AsyncFlow): bericht is geaccepteerd maar nog niet afgeleverd.
+        // Nog niet als succes loggen — de AsyncFlowStatusPoller bepaalt de definitieve uitkomst.
+        if (result.isPending()) {
+            log.info("Delivery PENDING via {} | trackingId={} — afleverstatus wordt gepolld",
+                    providerName, result.getProviderMessageId());
+
+            meterRegistry.counter("notifications_pending_total",
+                    "provider", providerName).increment();
+
+            dataService.saveAsyncFlowPending(
+                    result.getProviderMessageId(), notificationId, tenantId, context.retryCount());
+            return;
+        }
+
         log.info("Delivery SUCCESSFUL via {} | providerMessageId={}", providerName, result.getProviderMessageId());
 
         meterRegistry.counter("notifications_sent_total",

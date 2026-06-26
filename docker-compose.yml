@@ -157,7 +157,20 @@ services:
       - ./grafana/provisioning/dashboards/rabbitmq-dashboards.yml:/otel-lgtm/grafana/conf/provisioning/dashboards/rabbitmq-dashboards.yml
       - ./grafana/provisioning/alerting/alert-rules.yml:/otel-lgtm/grafana/conf/provisioning/alerting/alert-rules.yml
       - ./grafana/dashboards:/grafana/dashboards
-
+    # Seeder: maakt eenmalig een testpatiënt + afspraak aan bij opstart
+  seed-data:
+    build:
+      context: ./Scripts
+      dockerfile: Dockerfile
+    container_name: atx24-seed-data
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      app:
+        condition: service_healthy
+    environment:
+      OPENMRS_BASE_URL: http://host.docker.internal
+    restart: "no"
 volumes:
   postgres-data:
   rabbitmq-data:

@@ -52,14 +52,13 @@ def build_appointments():
 
     # -------------------------
     # 24H WINDOW TEST DATA
-    # window: -24h → -22h
-    # we target middle: -23h
+    # Verzendvenster (AppointmentService): 21u–27u vóór de afspraak.
+    # We spreiden binnen 22u–27u m.b.v. modulo, zodat ÁLLE afspraken in het
+    # venster blijven — ongeacht het aantal (nodig voor pipeline-load tests).
     # -------------------------
-    base_24h = now + timedelta(hours=23)
-
     for i in range(COUNT_24H):
-        jitter = timedelta(minutes=i * 10)  # small variation
-        start = base_24h + jitter
+        offset = timedelta(minutes=(i % 300))      # 0..299 min ≈ 0..5u
+        start = now + timedelta(hours=22) + offset  # 22u..~27u, binnen 21u–27u
         end = start + timedelta(minutes=30)
 
         results.append(_make_appointment(index, start, end, "24h"))
@@ -67,14 +66,13 @@ def build_appointments():
 
     # -------------------------
     # 1H WINDOW TEST DATA
-    # window: -1h → 0h
-    # we target middle: -30min
+    # Verzendvenster (AppointmentService): 0u–1u vóór de afspraak.
+    # We spreiden binnen +5min..+55min m.b.v. modulo, zodat ÁLLE afspraken in
+    # het venster blijven — ongeacht het aantal.
     # -------------------------
-    base_1h = now + timedelta(minutes=30)
-
     for i in range(COUNT_1H):
-        jitter = timedelta(minutes=i * 5)  # small variation
-        start = base_1h + jitter
+        offset = timedelta(seconds=(i % 3000))      # 0..2999 s ≈ 0..50 min
+        start = now + timedelta(minutes=5) + offset  # +5min..+55min, binnen 0u–1u
         end = start + timedelta(minutes=30)
 
         results.append(_make_appointment(index, start, end, "1h"))
