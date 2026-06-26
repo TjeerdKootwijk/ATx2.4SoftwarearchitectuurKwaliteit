@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 /**
@@ -40,11 +41,15 @@ public class IdempotencyService {
         String eventId = generateEventId(
                 event.getTenantId(),
                 event.getAppointmentId(),
-                event.getChangeType()
+                event.getChangeType(),
+                event.getAppointmentDateTime()
         );
+
+        log.debug("TESTING appointment time: {}, appointment id {}", event.getAppointmentDateTime(), event.getAppointmentId());
 
         log.debug("Checking idempotency for appointment {} (eventId={})",
                 event.getAppointmentId(), eventId);
+
 
         if (dataService.isEventProcessed(eventId)) {
             log.info("Duplicate appointment skipped: {} (eventId={})",
@@ -75,7 +80,7 @@ public class IdempotencyService {
      * Generates a SHA-256 event ID from tenant, appointment ID, and change type.
      * Falls back to a random UUID if hashing fails.
      */
-    public String generateEventId(String tenantId, String appointmentId, String changeType) {
+    public String generateEventId(String tenantId, String appointmentId, String changeType, LocalDateTime appointmentDateTime) {
         String input = String.format("%s:%s:%s", tenantId, appointmentId, changeType);
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
