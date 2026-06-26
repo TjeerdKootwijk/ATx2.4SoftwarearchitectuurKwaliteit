@@ -28,8 +28,10 @@ geteld in de `notifications_sent_total` metric. Zo meet je niet alleen de HTTP-l
 
 | Bestand | Functie |
 |---|---|
-| `loadtest.py` | Python load-test script (geen install nodig behalve `requests`) |
-| `pipeline-loadtest.jmx` | JMeter-testplan (zelfde test, vereist JMeter) |
+| `loadtest.py` | Python load-test script — belast de **verzend-helft** via `/test` (geen install nodig behalve `requests`) |
+| `measure_drain.py` | Meet de **consumer-doorvoer** (msg/s die de provider verstuurt) |
+| `pipeline_e2e_measure.py` | Meet de **hele pipeline** via de OpenMRS-ingest (polling → FHIR → verzenden) |
+| `pipeline-loadtest.jmx` | JMeter-testplan (zelfde test als `loadtest.py`, vereist JMeter) |
 | `tenants-providers.csv` | 4 tenants × 4 providers = 16 combinaties die round-robin worden gebruikt |
 
 Er zijn twee manieren om de test te draaien die exact hetzelfde belasten: de **Python-variant**
@@ -141,6 +143,57 @@ maar in de monitoring** — want JMeter meet alleen tot "in queue":
 Een gezonde test: JMeter accepteert N req/s met 0% errors, en in RabbitMQ loopt de queue niet
 structureel vol (consume rate ≈ publish rate). Loopt de queue wél op, dan is de consumer/provider
 de bottleneck — precies wat je met een pipeline-test wilt ontdekken.
+
+---
+
+## Hele-pipeline test (via OpenMRS-ingest)
+
+`loadtest.py` en het JMeter-plan raken de **verzend-helft** (queue → consumer →
+provider). Om de **hele pipeline** te testen — inclusief polling, FHIR-mapping en
+FHIR-validatie — voed je hem via de OpenMRS-kant met de fake-OpenMRS.
+
+De geteste keten:
+```
+PollingJob → fake-openmrs → FHIR-mapping → FHIR-validatie → event
+           → AppointmentService → RabbitMQ → consumer → provider
+```
+
+**Recept (vanuit de projectroot):**
+
+```powershell
+# 1. Laat fake-openmrs veel afspraken serveren (allemaal binnen het 1u-venster)
+$env:FAKE_APPOINTMENT_COUNT_1H=150; $env:FAKE_APPOINTMENT_COUNT_24H=0
+docker-compose up -d --build fake-openmrs
+
+# 2. Schone staat: idempotency-tabel + queue legen (anders skipt de poll alles)
+docker exec atx24-postgres psql -U postgres -d atx24db -c "DELETE FROM processed_events;"
+docker exec atx24-rabbitmq rabbitmqctl purge_queue notification.queue
+
+# 3. Herstart de app → de polling-cyclus pikt ~10s na opstart de verse batch op
+docker-compose restart app
+
+# 4. Meet de hele keten (start direct; het script wacht tot de app online is)
+cd performance
+python pipeline_e2e_measure.py --expected 150 --max-wait 300
+```
+
+Het script rapporteert **ingest-latency** (poll → eerste bericht in queue),
+**ingest-doorvoer**, **piek queue-diepte** (hoe ver ingest op verzenden vooruitliep)
+en de **verzend-rate**.
+
+> **Achtergrond.** De fake-OpenMRS genereert `FAKE_APPOINTMENT_COUNT_1H` afspraken die
+> dankzij een mod-spreiding allemaal binnen het 1u-verzendvenster vallen, zodat échte
+> volume door de hele keten stroomt. Polling staat altijd aan (vaste 5-min-cyclus,
+> eerste poll ~10s na opstart).
+
+> **Belangrijk — herhaalbaarheid.** De `IdempotencyService` dedupliceert op
+> appointmentId, en fake-openmrs gebruikt vaste IDs. Na de eerste poll worden alle
+> afspraken overgeslagen. Voor een nieuwe meting: stap 2 herhalen en de app
+> herstarten. `purge_queue` verwijdert geen *unacked* berichten — laat de queue eerst
+> volledig leeglopen voor exacte cijfers.
+
+> **Resetten:** unset `FAKE_APPOINTMENT_COUNT_1H` (of zet terug op 2) en
+> `docker-compose up -d --build fake-openmrs` om weer de standaard testdata te serveren.
 
 ---
 

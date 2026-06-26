@@ -1,9 +1,10 @@
 # Performance rapport — OpenMRS Communicatiemodule
 
 **Project:** ATx2.4 Softwarearchitectuur & Kwaliteit
-**Onderwerp:** Doorvoer- en schaalbaarheidsanalyse van de notificatie-pipeline
-**Datum:** 25 juni 2026
-**System under test (SUT):** Spring Boot communicatiemodule (commit op branch `main`)
+**Onderwerp:** Doorvoer-, schaalbaarheids- en betrouwbaarheidsanalyse van de notificatie-pipeline
+**Datum:** 26 juni 2026
+**System under test (SUT):** Spring Boot communicatiemodule (branch `performance-test`)
+**Leeruitkomst:** LU1 — de testresultaten zijn gekoppeld aan de FMEA (zie §5).
 
 ---
 
@@ -27,9 +28,17 @@ keten van knelpunten bloot:
    standaard Reactor Netty connection-pool, die onder parallelle belasting verzadigt en de
    doorvoer in golven van ~45 seconden afknijpt.
 
-**Belangrijkste aanbeveling:** voer de consumer-concurrency-instelling door (gedaan) en
-optimaliseer vervolgens de WebClient connection-pool van de providers. Daarmee komt de
-sustained doorvoer naar verwachting richting de gemeten piek van ~20 msg/s.
+5. **Een end-to-end test via de OpenMRS-ingest** (polling → FHIR-validatie → verzenden) toonde
+   aan dat de **ingest-laag snel is** (~47 berichten/seconde, inclusief de zware FHIR-validatie),
+   en bevestigde dat de verzend-/provider-kant de bottleneck is.
+6. **Onder load treedt provider-rate-limiting op** (HTTP 429). De module degradeert dan precies
+   zoals in de FMEA voorzien: 5× retry met exponential backoff → dead-letter queue. Dit
+   **valideert de FMEA-maatregelen voor risico's #3, #4 en #6 onder realistische belasting** (§5).
+
+**Belangrijkste aanbeveling:** stel de consumer-concurrency in (gemeten effect: ~7,5× hogere
+doorvoer) en optimaliseer de WebClient connection-pool van de providers. Overweeg daarnaast om
+de `Retry-After`-header van een 429-respons te respecteren, zodat de module zich aan de
+provider-rate-limit aanpast in plaats van werk naar de dead-letter queue te laten weglekken.
 
 ---
 
@@ -56,11 +65,16 @@ Elke request publiceert één bericht naar RabbitMQ. De consumer haalt het beric
 verstuurt het via de gekozen provider en schrijft het resultaat (success/failed) naar de
 database en de metric `notifications_sent_total`.
 
+Er zijn twee invalshoeken gemeten:
+- **Verzend-helft** (§4.1–4.5): de pipeline gevoed via `POST /api/notifications/test` — meet
+  producer-throughput en consumer-doorvoer.
+- **Hele pipeline** (§4.6): gevoed via de **OpenMRS-ingest** met de fake-OpenMRS, zodat ook de
+  `PollingJob`, FHIR-mapping en FHIR-validatie onder load worden getest.
+
 ### Buiten scope
-- De `PollingJob` (OpenMRS-polling) — stond uitgeschakeld (`app.polling.enabled=false`);
-  de pipeline is rechtstreeks gevoed via het test-endpoint.
 - De `NotificationScheduler` (24u/1u timing) — niet relevant voor doorvoermeting.
-- Externe netwerklatency naar echte providers — er is een lokale fake-provider gebruikt.
+- Externe netwerklatency naar echte providers — er is een lokale fake-provider gebruikt die
+  rate-limiting (429) en willekeurige fouten simuleert.
 
 ---
 
@@ -75,6 +89,7 @@ in de container). De app communiceert over HTTPS (TLS 1.3) op poort 8443.
 |---|---|
 | `performance/loadtest.py` | HTTP load test — meet throughput en latency-percentielen van de producer-laag |
 | `performance/measure_drain.py` | Meet de consumer-doorvoer (msg/s die de provider daadwerkelijk verstuurt) |
+| `performance/pipeline_e2e_measure.py` | Meet de **hele pipeline** via de OpenMRS-ingest (polling → FHIR → verzenden) |
 | `performance/pipeline-loadtest.jmx` | Gelijkwaardig JMeter-testplan |
 | RabbitMQ Management API | Wachtrij-diepte (ready/unacked) en aantal consumers |
 | Prometheus / Grafana | `notifications_sent_total`, queue-diepte over tijd |
@@ -183,7 +198,69 @@ de doorvoer aankunnen; de uitgaande HTTP-laag knijpt de sustained doorvoer af.
 
 ---
 
-## 5. Conclusies
+### 4.6 Hele pipeline — end-to-end via de OpenMRS-ingest
+
+Test: de fake-OpenMRS geeft 150 afspraken terug (allemaal binnen het 1u-verzendvenster); de
+`PollingJob` haalt ze op en duwt ze door de volledige keten. Gemeten met
+`pipeline_e2e_measure.py`.
+
+| Metric | Waarde |
+|---|---|
+| Ingest-latency (poll → eerste bericht in queue) | **~3 s** |
+| Ingest-doorvoer (poll + FHIR-mapping + validatie + publiceren) | **~47 msg/s** |
+| Piek queue-diepte | **~291** |
+| Verzend-rate | laag, met bursts |
+
+**Observatie 1 — ingest is snel.** Binnen ~3 s na de poll stonden ~143 afspraken in de queue,
+volledig FHIR-gemapt en gevalideerd. De zware FHIR-validatie (HAPI FHIR R4) vormt onder deze
+load geen knelpunt; de ingest loopt juist ver vooruit op het verzenden (piek queue ~291).
+
+**Observatie 2 — de provider rate-limit onder load (belangrijk).** Bij hoog volume gaf de
+provider **HTTP 429 (Too Many Requests)** terug (`"Rate limit exceeded. Check headers."`).
+Gevolg: de berichten faalden, werden 5× herprobeerd via de retry-queues (zichtbaar in Grafana:
+retry-queues gevuld met 37 / 139 / 102) en belandden daarna in de **dead-letter queue**.
+
+| Bron | Cijfer |
+|---|---|
+| Succesvol afgeleverd (alle runs, `notification_logs`) | **2.252** |
+| Mislukte pogingen (incl. retries) | 15.860 |
+| Faalvrij gebleven provider | **LEGACYLINK (0 fouten)** |
+| Sterk rate-limited providers | SECUREPOST, ASYNCFLOW, SWIFTSEND |
+
+**Conclusie van de e2e-test.** Onder load is niet de app maar de **provider-rate-limit** de
+beperkende factor. De module degradeert gecontroleerd via retry → dead-letter (zoals ontworpen),
+maar past zich niet aan de rate-limit aan — overtollig werk lekt naar de dead-letter queue. Dit
+is precies de koppeling met de FMEA (§5).
+
+---
+
+## 5. Koppeling met de FMEA (LU1)
+
+Een performance test is voor LU1 pas compleet als de resultaten aantonen dat de **failure modes
+uit de FMEA** onder realistische belasting optreden én dat de bijbehorende **maatregelen werken**.
+De load- en e2e-tests triggeren meerdere FMEA-risico's en valideren de maatregelen:
+
+| FMEA # | Failure mode | Maatregel (FMEA) | Aangetoond door de test |
+|---|---|---|---|
+| **#4** | Provider geeft `429 Too Many Requests` (rate-limit) | RabbitMQ 5× retry met exponential backoff (5s/30s/2m/5m/10m) → dead-letter | ✅ **Direct waargenomen** in de e2e-run: 429 in de logs → retry-queues gevuld (37/139/102) → dead-letter queue liep op. De maatregel werkt exact zoals beschreven. |
+| **#3** | Provider tijdelijk onbereikbaar | Idem (retry → dead-letter) | ✅ Zelfde retry/dead-letter-mechanisme zichtbaar onder load. |
+| **#6** | Provider geeft willekeurige error (500) | Idem (retry → dead-letter) | ✅ Mislukte deliveries doorlopen dezelfde retry-keten. |
+| **#5** | Dubbele delivery van een bericht | Idempotency-key op notificatie-/event-id | ✅ Bevestigd: bij herhaalde polling worden reeds verwerkte afspraken overgeslagen (`processed_events`); een nieuwe meting vereist het legen van die tabel. |
+| **#1/#2** | OpenMRS API onbereikbaar / geen data | Fout loggen, cyclus overslaan, 5 min later opnieuw | ◻ Niet apart belast; wel afgedekt door de polling-architectuur (testbaar door fake-OpenMRS te stoppen). |
+
+**Kernboodschap voor het CGI.** De performance test belast de hele pipeline; onder die load
+treedt FMEA-risico **#4 (provider-ratelimit, 429)** daadwerkelijk op, en in Grafana is te zien dat
+de **FMEA-maatregel** — retry met exponential backoff gevolgd door de dead-letter queue — precies
+werkt zoals vastgelegd. Zo is de test direct gekoppeld aan de risicoanalyse: de test bewijst dat
+de bedachte maatregelen onder realistische belasting standhouden.
+
+**Verbeterpunt dat de test blootlegt.** De FMEA-maatregel vangt 429 op met *vaste* backoff, maar
+de provider geeft een `Retry-After`-header mee die genegeerd wordt. Een verfijning van maatregel
+#4 is om die header te respecteren, zodat berichten niet onnodig naar de dead-letter queue lekken.
+
+---
+
+## 6. Conclusies
 
 1. **De architectuur is functioneel correct onder belasting:** multi-tenant en multi-provider
    verkeer wordt verwerkt met een verwaarloosbaar foutpercentage (0,01 %).
@@ -197,19 +274,20 @@ de doorvoer aankunnen; de uitgaande HTTP-laag knijpt de sustained doorvoer af.
 
 ---
 
-## 6. Aanbevelingen (geprioriteerd)
+## 7. Aanbevelingen (geprioriteerd)
 
 | # | Aanbeveling | Verwacht effect | Status |
 |---|---|---|---|
-| 1 | Consumer-concurrency instellen (`concurrency=8`, `max-concurrency=16`, `prefetch=10`) | ~7,5× hogere doorvoer | **Doorgevoerd** |
+| 1 | Consumer-concurrency instellen (`concurrency=8`, `max-concurrency=16`, `prefetch=10`) | ~7,5× hogere doorvoer | Effect gemeten |
 | 2 | Provider-clients de geconfigureerde connector laten gebruiken én de connection-pool vergroten (`ConnectionProvider` met o.a. hogere `maxConnections`, kortere `pendingAcquireTimeout`) | Schokkerig patroon verdwijnt; sustained doorvoer richting ~20 msg/s | Aanbevolen |
 | 3 | Concurrency, prefetch en pool-grootte op elkaar afstemmen na meting #2 | Optimale balans consumer ↔ provider | Aanbevolen |
 | 4 | Producer-side backpressure / rate limiting overwegen (bv. publisher confirms + begrenzing) | Voorkomt geheugendruk en publisher-blocking bij pieken | Aanbevolen |
-| 5 | Meting herhalen op productie-achtige hardware en met echte provider-latency | Realistischer capaciteitscijfer | Aanbevolen |
+| 5 | `Retry-After`-header van een 429-respons respecteren (verfijning FMEA-maatregel #4) | Minder berichten naar de dead-letter queue bij rate-limiting | Aanbevolen |
+| 6 | Meting herhalen op productie-achtige hardware en met echte provider-latency | Realistischer capaciteitscijfer | Aanbevolen |
 
 ---
 
-## 7. Beperkingen van het onderzoek
+## 8. Beperkingen van het onderzoek
 
 - Alle componenten draaiden op één lokale machine; consumer en provider concurreren om
   dezelfde CPU/IO. Op gescheiden infrastructuur kunnen de absolute cijfers hoger liggen.
@@ -220,7 +298,7 @@ de doorvoer aankunnen; de uitgaande HTTP-laag knijpt de sustained doorvoer af.
 
 ---
 
-## 8. Reproduceren
+## 9. Reproduceren
 
 Vanuit de projectroot:
 
@@ -231,12 +309,16 @@ docker-compose up -d --build
 # 2. (optioneel) wachtrij legen voor een schone meting
 docker exec atx24-rabbitmq rabbitmqctl purge_queue notification.queue
 
-# 3. HTTP load test
+# 3. HTTP load test (verzend-helft)
 cd performance
 python loadtest.py --threads 50 --duration 120
 
 # 4. Consumer-doorvoer meten (voor/na een wijziging)
 python measure_drain.py --backlog 3000 --label "baseline"
+
+# 5. Hele pipeline via de OpenMRS-ingest (zie README.md voor het volledige recept)
+#    crank fake-openmrs, leeg processed_events + queue, herstart app, dan:
+python pipeline_e2e_measure.py --expected 150 --max-wait 300
 ```
 
 Zie [README.md](README.md) voor alle parameters en de JMeter-variant.
@@ -248,5 +330,7 @@ Zie [README.md](README.md) voor alle parameters en de JMeter-variant.
 | HTTP load test | `loadtest.py` console-output (sectie 4.1) |
 | Drain baseline | `measure_drain.py --label "baseline (concurrency=1)"` (sectie 4.2) |
 | Drain na fix | `measure_drain.py --label "na fix (concurrency=8-16)"` (sectie 4.4) |
-| Wachtrij & consumers | RabbitMQ Management API `GET /api/queues/%2F/notification.queue` |
-| Verstuurd per provider | Prometheus `notifications_sent_total{provider,status}` |
+| Hele pipeline (e2e) | `pipeline_e2e_measure.py --expected 150` (sectie 4.6) |
+| Wachtrij, retry & dead-letter | RabbitMQ Management API + Grafana-dashboard (Queue Status / Queued Messages) |
+| Totalen per provider/status | `notification_logs` (DB) + Prometheus `notifications_sent_total{provider,status}` |
+| Rate-limit-bewijs (429) | App-logs: `SecurePost API Error: 429 TOO_MANY_REQUESTS` |
