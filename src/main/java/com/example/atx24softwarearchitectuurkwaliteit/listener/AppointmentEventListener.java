@@ -39,14 +39,14 @@ public class AppointmentEventListener {
 
     @RabbitListener(queues = RabbitMQConfig.APPOINTMENT_QUEUE)
     public void handleAppointmentEvent(AppointmentChangedEvent event) {
-        log.info("------------------------------------------------");
-        log.info("[STEP 2] AppointmentEvent received from RabbitMQ");
-        log.info("  Event ID    : {}", event.getEventId());
-        log.info("  Tenant      : {}", event.getTenantId());
-        log.info("  Appointment : {}", event.getAppointmentDateTime());
-        log.info("  Status      : {}", event.getStatus());
-        log.info("  Change type : {}", event.getChangeType());
-        log.info("------------------------------------------------");
+//        log.info("------------------------------------------------");
+//        log.info("[STEP 2] AppointmentEvent received from RabbitMQ");
+//        log.info("  Event ID    : {}", event.getEventId());
+//        log.info("  Tenant      : {}", event.getTenantId());
+//        log.info("  Appointment : {}", event.getAppointmentDateTime());
+//        log.info("  Status      : {}", event.getStatus());
+//        log.info("  Change type : {}", event.getChangeType());
+//        log.info("------------------------------------------------");
 
         try {
             switch (event.getChangeType()) {

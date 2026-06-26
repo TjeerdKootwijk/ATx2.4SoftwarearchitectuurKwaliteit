@@ -14,6 +14,7 @@ import java.time.DateTimeException;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.Objects;
 
 
 /**
@@ -54,7 +55,7 @@ public class PollingJob {
         this.appointmentService = appointmentService;
         this.idempotencyService = idempotencyService;
     }
-
+//    original fixeddelay 300000
     @Scheduled(fixedDelay = 300000, initialDelay = 10000)
     public void pollOpenMrsAppointments() {
         log.info("=== Starting appointment polling job ===");
@@ -95,6 +96,11 @@ public class PollingJob {
 
                 // Per-tenant notificatieprovider meegeven (multi-tenancy: elke tenant kan eigen provider hebben)
                 event.setNotificationProvider(tenant.getNotificationProvider());
+
+                if(!Objects.equals(event.getStatus().toLowerCase(), "booked")){
+                    log.info("appointment has wrong status: {}" ,  event.getStatus());
+                    continue;
+                }
 
                 // Stap 4: idempotency check — skip als dit event al eerder verwerkt is
                 if (!idempotencyService.processAppointment(event)) {
